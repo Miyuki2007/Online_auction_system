@@ -4,6 +4,7 @@ import model.auction.exception.InvalidStateTransitionException;
 import model.auction.exception.InvalidBidException;
 import model.auction.observer.AuctionObserver;
 import model.auction.observer.AuctionSubject;
+import model.item.Item;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -83,11 +84,11 @@ public class Auction implements AuctionSubject,Serializable {
                 }
                 //3.Seller không được tự đấu giá
                 if (bidderId.equals(sellerId)){
-                    throw new InvalidBidException("Seller cannot bid on their own auction");
+                    throw new InvalidBidException("Người bán không thể đấu giá trong chính phiên đấu giá của mình.");
                 }
                 //4. Giá phải cao hơn giá hiện tại
                 if (amount <= currentHighestBid){
-                    throw new InvalidBidException("Bid %.2f must be higher than current %.2f", amount, currentHighestBid);
+                    throw new InvalidBidException("Giá đấu giá %.2f phải cao hơn giá hiện tại %.2f", amount, currentHighestBid);
                 }
                 //5. Tạo record và cập nhật
                 BidRecord record = new BidRecord(id,bidderId, amount);
@@ -192,8 +193,8 @@ public class Auction implements AuctionSubject,Serializable {
     //Getter
     public String getId() { return id; }
     public String getSellerId() { return sellerId;}
-    public String getItemID() { return itemID; }
-    public String getItem() { return item; }
+    public String getItemID() { return item.getId(); }
+    public Item getItem() { return item; }
     public double getStartingPrice() { return startingPrice; }
     public LocalDateTime getStartTime() { return startTime; }
     public LocalDateTime getEndTime() { return endTime; }
@@ -206,12 +207,12 @@ public class Auction implements AuctionSubject,Serializable {
     @Override
     public String toString() {
         return String.format(
-                "[Auction] %s | %s | %s | High: %.2f | Bids: %d | AntiSnipe: %s",
+                "[Phiên đấu giá] %s | %s | %s | Giá cao nhất: %.2f | Số lượt đấu giá: %d | AntiSnipe: %s",
                 id.substring(0, 8), item.getName(), state,
                 currentHighestBid, bidHistory.size(),
                 antiSnipeEnabled
                         ? antiSnipeThresholdSec + "s/" + antiSnipeExtensionSec + "s"
-                        : "OFF"
+                        : "Tắt"
         );
     }
 }

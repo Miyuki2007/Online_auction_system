@@ -7,6 +7,7 @@ public class Vehicle extends Item {
         super(id, name, description, price);
         this.type = type;
     }
+    public String getType() {return type; }
     @Override
     public void displayDetails() {
         System.out.println("Tên sản phẩm: " + getName() + " Loại vật phẩm: Phương tiện");

@@ -1,5 +1,4 @@
 package model.factory;
-
 import model.item.Item;
 import model.item.Electronics;
 import model.item.Vehicle;
@@ -8,7 +7,7 @@ import model.item.Art;
 public class ItemFactory {
     public static Item createItem(String type, String id, String name, String desc, double price, String specialAttr) {
         if (type == null) {
-            return null;
+            throw new IllegalArgumentException("Loại sản phẩm không được bỏ qua");
         }
         String itemType = type.toUpperCase();
         switch (itemType) {
