@@ -15,7 +15,7 @@ public class Bidder extends User {
     public String getRole() {return "BIDDER"; }
     public double getBalance() {return balance; }
     public void deposit(double amount){
-        if (amount <=0) throw new IllegalArgumentException("Deposit must be > 0");
+        if (amount <=0) throw new IllegalArgumentException("Tiền gửi cần phải lớn hơn 0");
         this.balance += amount;
     }
     public void addBidToHistory(String bidID){ bidHistory.add(bidID); }

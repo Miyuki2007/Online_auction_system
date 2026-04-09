@@ -10,6 +10,7 @@ public abstract class Entity implements Serializable{
     protected Entity(String id){
         this.id = id;
     }
+    public String getId() {return id; }
     public abstract String getDisplayInfo();
     @Override
     public boolean equals(Object o){

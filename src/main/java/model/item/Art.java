@@ -7,6 +7,7 @@ public class Art extends Item {
         super(id, name, description, price);
         this.artist = artist;
     }
+    public String getArtist() { return artist;}
     @Override
     public void displayDetails(){
         System.out.println("Tên sản phẩm: " + getName() + " Loại vật phẩm: Nghệ Thuật");
