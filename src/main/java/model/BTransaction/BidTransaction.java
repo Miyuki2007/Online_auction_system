@@ -1,3 +1,5 @@
+package model.BTransaction; // Nhớ đổi tên package cho khớp với cây thư mục của bạn
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,7 +24,6 @@ public class BidTransaction implements Comparable<BidTransaction> {
 
     @Override
     public int compareTo(BidTransaction other) {
-        // So sánh giá giảm dần. Nếu giá bằng nhau, ai đặt trước xếp trên
         int cmp = other.amount.compareTo(this.amount);
         return cmp != 0 ? cmp : this.timestamp.compareTo(other.timestamp);
     }
