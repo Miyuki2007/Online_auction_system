@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
+import model.BTransaction.BidTransaction;
 /*
 Thread-safe: Dùng ReentrantLock để tránh lost update
 khi nhiều bidder đặt giá đồng thời
@@ -41,7 +42,7 @@ public class Auction implements AuctionSubject,Serializable {
     private String currentWinnerId;
 
     //Lịch sử Bid
-    private final List<BidRecord> bidHistory;
+    private final List<BidTransaction> bidHistory;
 
     //Concurrency: vấn đề xảy ra khi nhiều bidder đặt giá cùng một lúc
     private final ReentrantLock bidLock;
@@ -70,7 +71,7 @@ public class Auction implements AuctionSubject,Serializable {
         this.observers = new CopyOnWriteArrayList<>();
     }
         // Đặt giá
-        public BidRecord placeBid(String bidderId, double amount){
+        public BidTransaction placeBid(String bidderId, double amount){
             bidLock.lock();
             try{
                 //1.Phiên phải đang Running
@@ -91,7 +92,7 @@ public class Auction implements AuctionSubject,Serializable {
                     throw new InvalidBidException("Giá đấu giá %.2f phải cao hơn giá hiện tại %.2f", amount, currentHighestBid);
                 }
                 //5. Tạo record và cập nhật
-                BidRecord record = new BidRecord(id,bidderId, amount);
+                BidTransaction record = new BidTransaction(id,bidderId, amount);
                 bidHistory.add(record);
                 currentHighestBid = amount;
                 currentWinnerId = bidderId;
@@ -163,7 +164,7 @@ public class Auction implements AuctionSubject,Serializable {
         getObservers().remove(observer);
     }
     @Override
-    public void notifyNewBid(BidRecord bid){
+    public void notifyNewBid(BidTransaction bid){
         for (AuctionObserver obs : getObservers()){
             obs.onNewBid(this,bid);
         }
@@ -175,11 +176,11 @@ public class Auction implements AuctionSubject,Serializable {
         }
     }
     //Query
-    public Optional<BidRecord> getWinningBid(){
+    public Optional<BidTransaction> getWinningBid(){
         if (bidHistory.isEmpty()) return Optional.empty();
-        return bidHistory.stream().max(Comparator.comparingDouble(BidRecord::getAmount));
+        return bidHistory.stream().max(Comparator.comparingDouble(BidTransaction::getAmount));
     }
-    public List<BidRecord> getBidHistory(){
+    public List<BidTransaction> getBidHistory(){
         return Collections.unmodifiableList(bidHistory);
     }
     public int getBidCount(){ return bidHistory.size();}

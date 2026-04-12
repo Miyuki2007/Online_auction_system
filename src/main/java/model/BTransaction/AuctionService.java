@@ -1,46 +1,38 @@
 package model.BTransaction;
 
-import java.math.BigDecimal;
+import model.auction.Auction;
+import model.auction.AuctionState;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AuctionService {
-    private final Map<String, AuctionProduct> productDatabase = new ConcurrentHashMap<>();
+    private final Map<String, Auction> auctionDatabase = new ConcurrentHashMap<>();
 
-    public void addProduct(AuctionProduct product) {
-        productDatabase.put(product.getId(), product);
-        System.out.println("Đã thêm sản phẩm: " + product.getId());
+    public void addAuction(Auction auction) {
+        auctionDatabase.put(auction.getId(), auction);
+        System.out.println("Đã thêm sản phẩm: " + auction.getId());
     }
 
-    public String participateAuction(String productId, String userId, BigDecimal bidAmount) {
-        AuctionProduct product = productDatabase.get(productId);
+    public BidTransaction participateAuction(String auctionId, String userId, double bidAmount) {
+        Auction auction = auctionDatabase.get(auctionId);
 
-        if (product == null) {
-            return "Lỗi: Sản phẩm không tồn tại.";
+        if (auction == null) {
+            throw new IllegalArgumentException("Phiên đấu giá không tồn tại. ");
         }
-
-        // Ủy quyền việc kiểm tra luật lệ và đặt giá cho chính Product
-        boolean isSuccess = product.placeBid(userId, bidAmount);
-
-        if (isSuccess) {
-            return "Thành công: Người dùng " + userId + " đang dẫn đầu với giá " + bidAmount;
-        } else {
-            return "Thất bại: Giá đặt phải cao hơn mức giá cao nhất hiện tại hoặc phiên đã đóng.";
-        }
+        return auction.placeBid(userId,bidAmount);
     }
 
     public void checkAndEndAuctions() {
-        for (AuctionProduct product : productDatabase.values()) {
+        for (Auction auction : auctionDatabase.values()) {
+            // auction sẽ tự động kiểm tra giờ và tự đổi status nếu đã hết hạn
+            auction.checkExpiration();
 
-            // Product sẽ tự động kiểm tra giờ và tự đổi status nếu đã hết hạn
-            product.checkExpiration();
-
-            if (product.getStatus() == AuctionStatus.FINISHED) {
-                if (product.getCurrentLeaderId() != null) {
-                    System.out.println("Phiên " + product.getId() + " kết thúc. Người thắng: "
-                            + product.getCurrentLeaderId() + " với giá " + product.getCurrentHighestPrice());
+            if (auction.getState() == AuctionState.FINISHED) {
+                if (auction.getCurrentWinnerId() != null) {
+                    System.out.println("Phiên " + auction.getId() + " kết thúc. Người thắng: "
+                            + auction.getCurrentWinnerId() + " với giá " + auction.getCurrentHighestBid());
                 } else {
-                    System.out.println("Phiên " + product.getId() + " kết thúc. Không có người tham gia trả giá.");
+                    System.out.println("Phiên " + auction.getId() + " kết thúc. Không có người tham gia trả giá.");
                 }
             }
         }
