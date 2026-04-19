@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
-import model.auction;
 /*
 Thread-safe: Dùng ReentrantLock để tránh lost update
 khi nhiều bidder đặt giá đồng thời
