@@ -5,6 +5,8 @@ import model.auction.exception.InvalidBidException;
 import model.auction.observer.AuctionObserver;
 import model.auction.observer.AuctionSubject;
 import model.item.Item;
+
+import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -44,7 +46,12 @@ public class Auction implements AuctionSubject,Serializable {
     private final List<BidTransaction> bidHistory;
 
     //Concurrency: vấn đề xảy ra khi nhiều bidder đặt giá cùng một lúc
-    private final ReentrantLock bidLock;
+    private transient ReentrantLock bidLock;
+    private void readObject(java.io.ObjectInputStream in) throws IOException,ClassNotFoundException{
+        in.defaultReadObject();
+        this.bidLock = new ReentrantLock(true);
+        this.observers = new CopyOnWriteArrayList<>();
+    }
 
     //Observer
     private transient List<AuctionObserver> observers;

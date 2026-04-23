@@ -8,7 +8,6 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-
 <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="control.LoginController">
    <children>
       <Label layoutX="73.0" layoutY="89.0" prefHeight="36.0" prefWidth="172.0" text="ĐĂNG NHẬP">
@@ -22,6 +21,6 @@
       <Label layoutX="73.0" layoutY="192.0" text="Mật khẩu" />
       <Button fx:id="btnLogin" layoutX="155.0" layoutY="254.0" mnemonicParsing="false" onAction="#handleLogin" prefHeight="25.0" prefWidth="80.0" text="Đăng nhập" />
       <Label layoutX="109.0" layoutY="293.0" text="Chưa có tài khoản?" />
-      <Hyperlink layoutX="206.0" layoutY="290.0" text="Đăng kí ngay" />
+      <Hyperlink layoutX="216.0" layoutY="290.0" text="Đăng kí ngay" />
    </children>
 </Pane>

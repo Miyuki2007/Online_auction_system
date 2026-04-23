@@ -1,9 +1,12 @@
 package model.manager;
 
 import model.auction.Auction;
+import model.auction.BidTransaction;
+import model.item.Item;
 import model.user.User;
 import model.auction.exception.AuthenticationException;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
@@ -30,6 +33,9 @@ public class AuctionManager {
         return instance;
     }
     public void registerUser(User user){
+        if (getUserByUsername(user.getUsername())!= null){
+            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
+        }
         registeredUsers.add(user);
     }
     public User getUserByUsername(String username){
@@ -56,9 +62,32 @@ public class AuctionManager {
         activeAuctions.add(auction);
         System.out.println("Auction" + auction.getItemID() + "started");
     }
+    public Auction findAuctionById(String id){
+        for (Auction a : activeAuctions){
+            if (a.getId().equals(id))
+            {
+                return a;
+            }
+        }
+        return null;
+    }
+    public BidTransaction placeBid(String auctionId, String bidderId, double amount){
+        Auction a = findAuctionById(auctionId);
+        if (a==null){
+            throw new IllegalArgumentException("Phiên đấu giá không tồn tại.");
+        }
+        return a.placeBid(bidderId,amount);
+    }
+    public Auction createAuction(String sellerId, Item item, double startingPrice, LocalDateTime start, LocalDateTime end, boolean antiSnipe, long threshold, long extension){
+        Auction a = new Auction(sellerId,item,startingPrice,start,end,antiSnipe,threshold,extension);
+        activeAuctions.add(a);
+        a.start();
+        return a;
+    }
+
 
     public List<Auction> getActiveAuctions() {
-        return activeAuctions;
+        return Collections.unmodifiableList(activeAuctions);
     }
     public List<User> getRegisteredUsers(){
         return Collections.unmodifiableList(registeredUsers);

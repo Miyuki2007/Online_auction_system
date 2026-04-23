@@ -1,11 +1,19 @@
 package client;
 import protocol.Response;
 import java.io.ObjectInputStream;
+import java.util.concurrent.BlockingQueue;
+import java.util.function.Consumer;
 public class ServerListener implements Runnable{
     private final ObjectInputStream in;
-    public ServerListener(ObjectInputStream in){
-        this.in=in;
+    private final BlockingQueue<Response> responseQueue;
+    private final Consumer<Response> onNotification;
+
+    public ServerListener(ObjectInputStream in, BlockingQueue<Response> responseQueue, Consumer<Response> onNotification) {
+        this.in = in;
+        this.responseQueue = responseQueue;
+        this.onNotification = onNotification;
     }
+
     @Override
     public void run(){
         try{
@@ -14,7 +22,10 @@ public class ServerListener implements Runnable{
                 if (obj instanceof Response){
                     Response response = (Response) obj;
                     if (response.getStatus() == Response.Status.NOTIFICATION){
-                        System.out.println("Notification: " + response.getMessage());
+                        onNotification.accept(response);
+                    }
+                    else {
+                        responseQueue.put(response);
                     }
                 }
             }
