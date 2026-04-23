@@ -227,7 +227,7 @@ class AuctionTest {
     void getWinningBid_returnsHighest(){
         auction.placeBid("bidder-001",1500.0);
         auction.placeBid("bidder-002",2000.0);
-        auction.placeBid("bidder-003",1800.0);
+        auction.placeBid("bidder-003",2500.0);
         var winning = auction.getWinningBid();
         assertTrue(winning.isPresent());
         assertEquals(2000.0,winning.get().getAmount());

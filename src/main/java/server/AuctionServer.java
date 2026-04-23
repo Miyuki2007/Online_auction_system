@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
-import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,7 +21,6 @@ public class AuctionServer {
                 System.out.println("Client đang kết nối: " + clientSocket.getRemoteSocketAddress());
                 ClientHandler handler = new ClientHandler(clientSocket,this);
                 connectedClients.add(handler);
-                threadPool.submit((Runnable) handler);
             }
         } catch (IOException e){
             System.err.println("Lỗi server: " + e.getMessage());

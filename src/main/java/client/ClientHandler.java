@@ -12,7 +12,6 @@ import server.AuctionServer;
 import java.io.*;
 import java.net.Socket;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 public class ClientHandler implements Runnable{
     private final Socket socket;
@@ -60,7 +59,7 @@ public class ClientHandler implements Runnable{
                             user = new Bidder(request.getParam(0),request.getParam(1), request.getParam(2),request.getParam(3));
                             break;
                         case "SELLER":
-                            user = new Bidder(request.getParam(0),request.getParam(1), request.getParam(2),request.getParam(3));
+                            user = new Seller(request.getParam(0),request.getParam(1), request.getParam(2),request.getParam(3));
                             break;
                         default:
                             return Response.error("Vai trò không hợp lệ.");
