@@ -6,6 +6,11 @@ import protocol.Response;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Hyperlink;
+import javafx.stage.Stage;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
@@ -24,7 +29,8 @@ public class LoginController {
     private Button btnLogin;
 
     private AuctionClient client;
-
+    @FXML
+    private Hyperlink linkRegister;
     @FXML
     void initialize(){
         client = new AuctionClient();
@@ -53,6 +59,19 @@ public class LoginController {
             }
         } catch(Exception e){
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi khi gửi yêu cầu: " +  e.getMessage());
+        }
+    }
+    @FXML
+    void handleGoToRegister() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/register.fxml"));
+            Parent root = loader.load();
+
+            Stage stage = (Stage) linkRegister.getScene().getWindow();
+            stage.setTitle("Đăng ký - Hệ thống đấu giá");
+            stage.setScene(new Scene(root, 800, 600));
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể mở trang đăng ký: " + e.getMessage());
         }
     }
     private void showAlert(Alert.AlertType type, String title, String content){

@@ -21,6 +21,7 @@ public class AuctionServer {
                 System.out.println("Client đang kết nối: " + clientSocket.getRemoteSocketAddress());
                 ClientHandler handler = new ClientHandler(clientSocket,this);
                 connectedClients.add(handler);
+                threadPool.execute(handler);
             }
         } catch (IOException e){
             System.err.println("Lỗi server: " + e.getMessage());
