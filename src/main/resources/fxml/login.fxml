@@ -1,26 +1,86 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="control.LoginController">
-   <children>
-      <Label layoutX="73.0" layoutY="89.0" prefHeight="36.0" prefWidth="172.0" text="ĐĂNG NHẬP">
-         <font>
-            <Font name="System Bold" size="25.0" />
-         </font>
-      </Label>
-      <TextField fx:id="txtUsername" layoutX="73.0" layoutY="159.0" prefHeight="25.0" prefWidth="243.0" />
-      <PasswordField fx:id="txtPassword" layoutX="73.0" layoutY="209.0" prefHeight="25.0" prefWidth="243.0" />
-      <Label layoutX="73.0" layoutY="142.0" text="Tên đăng nhập" />
-      <Label layoutX="73.0" layoutY="192.0" text="Mật khẩu" />
-      <Button fx:id="btnLogin" layoutX="155.0" layoutY="254.0" mnemonicParsing="false" onAction="#handleLogin" prefHeight="25.0" prefWidth="80.0" text="Đăng nhập" />
-      <Label layoutX="109.0" layoutY="293.0" text="Chưa có tài khoản?" />
-      <Hyperlink layoutX="216.0" layoutY="290.0" text="Đăng kí ngay" />
-   </children>
-</Pane>
+<BorderPane prefHeight="500.0" prefWidth="800.0"
+            style="-fx-background-color: #eef2f7;"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="control.LoginController">
+
+    <center>
+        <VBox alignment="CENTER" spacing="14" maxWidth="360.0"
+              style="-fx-background-color: white; -fx-padding: 40; -fx-border-color: #cccccc; -fx-border-width: 1;">
+
+            <!-- Tiêu đề -->
+            <Label text="ĐĂNG NHẬP" style="-fx-text-fill: #1a1a2e;">
+                <font>
+                    <Font name="System Bold" size="26.0" />
+                </font>
+            </Label>
+
+            <Label text="Hệ thống Đấu giá trực tuyến" style="-fx-text-fill: #888888;">
+                <font>
+                    <Font size="13.0" />
+                </font>
+            </Label>
+
+            <Region prefHeight="8.0" />
+
+            <!-- Tên đăng nhập -->
+            <Label text="Tên đăng nhập" style="-fx-text-fill: #333333;">
+                <font>
+                    <Font name="System Bold" size="13.0" />
+                </font>
+            </Label>
+            <TextField fx:id="txtUsername" promptText="Nhập tên đăng nhập" prefHeight="36.0" />
+
+            <!-- Mật khẩu -->
+            <Label text="Mật khẩu" style="-fx-text-fill: #333333;">
+                <font>
+                    <Font name="System Bold" size="13.0" />
+                </font>
+            </Label>
+            <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu" prefHeight="36.0" />
+
+            <!-- Thông báo lỗi -->
+            <Label fx:id="lblError" text="" style="-fx-text-fill: #e74c3c;" wrapText="true">
+                <font>
+                    <Font size="12.0" />
+                </font>
+            </Label>
+
+            <!-- Nút đăng nhập -->
+            <Button fx:id="btnLogin" text="Đăng Nhập" onAction="#handleLogin"
+                    prefHeight="40.0" prefWidth="280.0"
+                    style="-fx-background-color: #0f3460; -fx-text-fill: white; -fx-font-size: 14; -fx-cursor: hand;" />
+
+            <!-- Link đăng ký -->
+            <HBox alignment="CENTER" spacing="4">
+                <Label text="Chưa có tài khoản?" style="-fx-text-fill: #888888;">
+                    <font>
+                        <Font size="12.0" />
+                    </font>
+                </Label>
+                <Hyperlink fx:id="linkRegister" text="Đăng ký ngay" onAction="#handleGoToRegister"
+                           style="-fx-text-fill: #0f3460;">
+                    <font>
+                        <Font name="System Bold" size="12.0" />
+                    </font>
+                </Hyperlink>
+            </HBox>
+
+        </VBox>
+    </center>
+
+</BorderPane>
