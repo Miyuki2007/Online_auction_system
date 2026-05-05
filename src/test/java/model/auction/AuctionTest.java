@@ -1,5 +1,5 @@
 package model.auction;
-import model.auction.BidTransaction;
+
 import model.auction.exception.AuctionClosedException;
 import model.auction.exception.InvalidBidException;
 import model.auction.exception.InvalidStateTransitionException;
@@ -31,7 +31,7 @@ class AuctionTest {
         );
         auction.start();
     }
-    //Test đặt giá hợp lệ
+    //==== Test đặt giá hợp lệ ====
     @Test
     @DisplayName("Đặt giá hợp lệ - cao hơn giá hiện tại")
     void placeBid_validAmount_success(){
@@ -51,7 +51,7 @@ class AuctionTest {
         assertEquals("bidder-003",auction.getCurrentWinnerId());
         assertEquals(3,auction.getBidCount());
     }
-    //Test đặt giá không hợp lệ
+    //==== Test đặt giá không hợp lệ ====
     @Test
     @DisplayName("Đặt giá thấp hơn giá hiện tại - throw InvalidBidException")
     void placeBid_lowAmount_throwsException(){
@@ -89,7 +89,7 @@ class AuctionTest {
             auction.placeBid("bidder-001",1500.0);
         });
     }
-    //Test chuyển trạng thái
+    //==== Test chuyển trạng thái ====
     @Test
     @DisplayName("Chuyển trạng thái hợp lệ: OPEN -> RUNNING -> FINISHED -> PAID")
     void stateTransition_validFlow(){
@@ -107,7 +107,7 @@ class AuctionTest {
         assertEquals(AuctionState.PAID,a.getState());
     }
     @Test
-    @DisplayName("Chuyển trạng thaái không hợp lệ: OPEN -> FINISHED - throw Exception")
+    @DisplayName("Chuyển trạng thái không hợp lệ: OPEN -> FINISHED - throw Exception")
     void stateTransition_invalidFlow_throwsException(){
         Auction a = new Auction(
                 Seller_ID,testItem,1000.0,
@@ -136,7 +136,7 @@ class AuctionTest {
         auction.cancel();
         assertThrows(InvalidStateTransitionException.class,()->auction.start());
     }
-    //Test Observer
+    //==== Test Observer ====
     @Test
     @DisplayName("Observer nhận thông báo khi có bid mới")
     void observer_notifiedOnNewBid(){
@@ -173,7 +173,7 @@ class AuctionTest {
         auction.finishAuction();
         assertEquals(1,stateChangeCount.get());
     }
-    //Test concurrent bidding
+    //==== Test concurrent bidding ====
     @Test
     @DisplayName("Nhiều bidder đặt giá đồng thời - không mất bid, không race condition")
     void concurrentBidding_noLostUpdate() throws InterruptedException{
@@ -205,7 +205,7 @@ class AuctionTest {
         //Không có 2 nời cùng thắng
         assertNotNull(auction.getCurrentWinnerId());
     }
-    //Test anti - sniping
+    //==== Test anti - sniping ====
     @Test
     @DisplayName("Anti-sniping gia hạn thời gian khi bid trong giây cuối")
     void antiSnipe_extendsTime(){
@@ -221,16 +221,17 @@ class AuctionTest {
         //Thời gian kết thúc phải kéo dài thêm 60s
         assertTrue(endAfter.isAfter(endBefore));
     }
-    //Test winning bid
+    //==== Test winning bid ====
     @Test
     @DisplayName("getWinningBid trả về Bid cao nhất")
     void getWinningBid_returnsHighest(){
         auction.placeBid("bidder-001",1500.0);
         auction.placeBid("bidder-002",2000.0);
-        auction.placeBid("bidder-003",2500.0);
+
+        assertThrows(InvalidBidException.class, ()-> auction.placeBid("bidder-003",1800.0));
         var winning = auction.getWinningBid();
-        assertTrue(winning.isPresent());
         assertEquals(2000.0,winning.get().getAmount());
+        assertEquals("bidder-002",winning.get().getBidderId());
     }
     @Test
     @DisplayName("getWinning trả về empty khi không có bid")
