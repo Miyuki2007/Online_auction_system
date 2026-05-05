@@ -1,5 +1,6 @@
 package client;
 
+import control.Scenemanager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -10,11 +11,11 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("/fxml/login.fxml"));
-        primaryStage.setTitle("Đăng nhập - Hệ thống đấu giá");
-        primaryStage.setScene(new Scene(root, 800, 600));
-        primaryStage.setAlwaysOnTop(true);   // thêm dòng này
-        primaryStage.show();
+        Scenemanager.getInstance().setPrimaryStage(primaryStage);
+
+        primaryStage.setAlwaysOnTop(true);
+
+        Scenemanager.getInstance().switchScene("login.fxml", "Đăng nhập - Hệ thống đấu giá");
     }
 
     public static void main(String[] args) {
