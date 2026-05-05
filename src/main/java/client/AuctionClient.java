@@ -8,11 +8,14 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class AuctionClient {
     private static final String HOST = "localhost";
     private static final int PORT = 12345;
+
+    private static final long REQUEST_TIMEOUT_SEC = 5;
 
     private Socket socket;
     private ObjectOutputStream out;
@@ -23,26 +26,43 @@ public class AuctionClient {
 
     private ServerListener listener;
     private Thread listenerThread;
+    private volatile boolean connected = false;
 
     public void setOnNotification(Consumer<Response> onNotification){
         this.onNotification = onNotification;
     }
+    public boolean isConnected(){
+        return connected && socket != null && !socket.isClosed();
+    }
     public void connect() throws IOException{
+        if (isConnected()){
+            return;
+        }
         socket = new Socket(HOST,PORT);
         out = new ObjectOutputStream(socket.getOutputStream());
+        out.flush();
         in = new ObjectInputStream(socket.getInputStream());
 
         listener = new ServerListener(in, responseQueue, this::handleNotification);
-        listenerThread = new Thread(listener);
+        listenerThread = new Thread(listener,"AuctionClient - Listener");
         listenerThread.setDaemon(true);
         listenerThread.start();
+        connected = true;
     }
     public Response sendRequest(Request request) throws IOException,InterruptedException{
-        out.writeObject(request);
-        out.flush();
-        return responseQueue.take();
+        if (!isConnected()){
+            throw new IOException("Chưa kết nối tới server");
+        }
+        synchronized (out)
+        {
+            out.writeObject(request);
+            out.flush();
+        }
+
+        return responseQueue.poll(REQUEST_TIMEOUT_SEC, TimeUnit.SECONDS);
     }
     public void disconnect() {
+        connected = false;
         try {
             if (listener != null) {
                 listener.stopListening();
