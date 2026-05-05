@@ -1,24 +1,22 @@
 package client;
 
-import model.auction.Auction;
+import model.user.User;
 import model.user.Admin;
 import model.user.Bidder;
 import model.user.Seller;
-import model.user.User;
+import model.auction.Auction;
 
 /**
- * Session quản lý trạng thái phiên làm việc phía Client.
+ * Session quản lý trạng thái đăng nhập phía Client.
  * Áp dụng Design Pattern: Singleton & Thread-safe.
  */
 public class Session {
     private static Session instance;
-
     private User loggedInUser;
-    private AuctionClient auctionClient;
+    private AuctionClient client;
     private Auction selectedAuction;
 
-    private Session() {
-    }
+    private Session() {}
 
     public static synchronized Session getInstance() {
         if (instance == null) {
@@ -26,8 +24,6 @@ public class Session {
         }
         return instance;
     }
-
-    // ===== USER =====
 
     public User getLoggedInUser() {
         return loggedInUser;
@@ -48,27 +44,12 @@ public class Session {
     public boolean isSeller() {
         return loggedInUser instanceof Seller;
     }
-
-    // ===== AUCTION CLIENT =====
-
-
-    public AuctionClient getClient() {
-        if (auctionClient == null) {
-            auctionClient = new AuctionClient();
+    public AuctionClient getClient(){
+        if (client==null){
+            client = new AuctionClient();
         }
-        return auctionClient;
+        return client;
     }
-
-    public AuctionClient getAuctionClient() {
-        return getClient();
-    }
-
-    public void setAuctionClient(AuctionClient client) {
-        this.auctionClient = client;
-    }
-
-    // ===== SELECTED AUCTION (truyền giữa các scene) =====
-
     public Auction getSelectedAuction() {
         return selectedAuction;
     }
@@ -77,15 +58,12 @@ public class Session {
         this.selectedAuction = auction;
     }
 
-    // ===== CLEAR (đăng xuất / thoát app) =====
-
     public void clear() {
         loggedInUser = null;
         selectedAuction = null;
-
-        if (auctionClient != null) {
-            auctionClient.disconnect();
-            auctionClient = null;
+        if (client!=null){
+            client.disconnect();
+            client = null;
         }
     }
 }

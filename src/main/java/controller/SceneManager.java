@@ -1,4 +1,4 @@
-package control;
+package controller;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -6,16 +6,16 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import java.io.IOException;
 
-public class Scenemanager {
+public class SceneManager {
 
-    private static Scenemanager instance;
+    private static SceneManager instance;
     private Stage primaryStage;
 
-    private Scenemanager() {}
+    private SceneManager() {}
 
-    public static Scenemanager getInstance() {
+    public static SceneManager getInstance() {
         if (instance == null) {
-            instance = new Scenemanager();
+            instance = new SceneManager();
         }
         return instance;
     }

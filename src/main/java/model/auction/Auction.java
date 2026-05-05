@@ -76,19 +76,22 @@ public class Auction implements AuctionSubject,Serializable {
         this.bidLock = new ReentrantLock(true);
         this.observers = new CopyOnWriteArrayList<>();
     }
-        // Đặt giá
-        public BidTransaction placeBid(String bidderId, double amount){
-            bidLock.lock();
-            try{
-                //1.Phiên phải đang Running
-                if (state != AuctionState.RUNNING){
-                    throw new AuctionClosedException(id);
-                }
-                //2.Kiểm tra hết giờ chưa
-                if (LocalDateTime.now().isAfter(endTime)){
-                    finishAuction();
-                    throw new AuctionClosedException(id);
-                }
+    // Đặt giá
+    public BidTransaction placeBid(String bidderId, double amount){
+        BidTransaction record;
+        boolean expired = false;
+        long extension = 0L;
+        bidLock.lock();
+        try{
+            //1.Phiên phải đang Running
+            if (state != AuctionState.RUNNING){
+                throw new AuctionClosedException(id);
+            }
+            //2.Kiểm tra hết giờ chưa
+            if (LocalDateTime.now().isAfter(endTime)){
+                expired = true;
+            }
+            if (!expired) {
                 //3.Seller không được tự đấu giá
                 if (bidderId.equals(sellerId)){
                     throw new InvalidBidException("Người bán không thể đấu giá trong chính phiên đấu giá của mình.");
@@ -97,22 +100,43 @@ public class Auction implements AuctionSubject,Serializable {
                 if (amount <= currentHighestBid){
                     throw new InvalidBidException("Giá đấu giá %.2f phải cao hơn giá hiện tại %.2f", amount, currentHighestBid);
                 }
+            }
+            if (expired) {
+                record = null;
+            } else {
                 //5. Tạo record và cập nhật
-                BidTransaction record = new BidTransaction(id,bidderId, amount);
+                record = new BidTransaction(id, bidderId, amount);
                 bidHistory.add(record);
                 currentHighestBid = amount;
                 currentWinnerId = bidderId;
-                //6. Anti-sniping ch chạy nếu seller đã bật
+                //6. Anti-sniping chạy nếu seller đã bật
                 if (antiSnipeEnabled){
-                    checkAntiSnipe();
+                    long secsRemain = Duration.between(LocalDateTime.now(), endTime).getSeconds();
+                    if (secsRemain > 0 && secsRemain <= antiSnipeThresholdSec){
+                        endTime = endTime.plusSeconds(antiSnipeExtensionSec);
+                        extension = antiSnipeExtensionSec;
+                    }
                 }
-                notifyNewBid(record);
-                return record;
-            }finally{
-                bidLock.unlock();
+            }
+        } finally {
+            bidLock.unlock();
+        }
+
+        // Notify ngoài critical section để tránh deadlock và giảm thời gian giữ lock.
+        // (Observer có thể gọi I/O dài như socket broadcast.)
+        if (expired) {
+            finishAuction();
+            throw new AuctionClosedException(id);
+        }
+        if (extension > 0) {
+            for (AuctionObserver obs : getObservers()){
+                obs.onAuctionTimeExtended(this, extension);
             }
         }
-        //Chuyển trạng thái
+        notifyNewBid(record);
+        return record;
+    }
+    //Chuyển trạng thái
     public void start(){
         transitionTo(AuctionState.RUNNING);
         this.startTime = LocalDateTime.now();
