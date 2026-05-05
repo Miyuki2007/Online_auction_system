@@ -1,4 +1,4 @@
-package client;
+package server;
 import model.auction.Auction;
 import model.manager.AuctionManager;
 import model.user.*;
@@ -7,7 +7,6 @@ import model.factory.ItemFactory;
 import model.auction.BidTransaction;
 import protocol.Response;
 import protocol.Request;
-import server.AuctionServer;
 
 import java.io.*;
 import java.net.Socket;
