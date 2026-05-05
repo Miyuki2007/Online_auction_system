@@ -3,10 +3,13 @@ import protocol.Response;
 import java.io.ObjectInputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
+
 public class ServerListener implements Runnable{
     private final ObjectInputStream in;
     private final BlockingQueue<Response> responseQueue;
     private final Consumer<Response> onNotification;
+
+    private volatile boolean running = true;
 
     public ServerListener(ObjectInputStream in, BlockingQueue<Response> responseQueue, Consumer<Response> onNotification) {
         this.in = in;
@@ -14,15 +17,21 @@ public class ServerListener implements Runnable{
         this.onNotification = onNotification;
     }
 
+    public void stopListening()
+    {
+        running = false;
+    }
     @Override
     public void run(){
         try{
-            while(true){
+            while(running){
                 Object obj = in.readObject();
                 if (obj instanceof Response){
                     Response response = (Response) obj;
                     if (response.getStatus() == Response.Status.NOTIFICATION){
-                        onNotification.accept(response);
+                        if (onNotification!=null) {
+                            onNotification.accept(response);
+                        }
                     }
                     else {
                         responseQueue.put(response);
@@ -30,7 +39,9 @@ public class ServerListener implements Runnable{
                 }
             }
         } catch(Exception e){
-            System.out.println("Mất kết nối server.");
+            if(running){
+                System.out.println("Mất kết nối server.");
+            }
         }
     }
 }

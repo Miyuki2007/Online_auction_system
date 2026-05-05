@@ -17,8 +17,13 @@ public class AuctionClient {
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
+
     private final BlockingQueue<Response> responseQueue = new LinkedBlockingQueue<>();
     private Consumer<Response> onNotification;
+
+    private ServerListener listener;
+    private Thread listenerThread;
+
     public void setOnNotification(Consumer<Response> onNotification){
         this.onNotification = onNotification;
     }
@@ -26,17 +31,31 @@ public class AuctionClient {
         socket = new Socket(HOST,PORT);
         out = new ObjectOutputStream(socket.getOutputStream());
         in = new ObjectInputStream(socket.getInputStream());
-        new Thread (new ServerListener(in,responseQueue,this::handleNotification)).start();
+
+        listener = new ServerListener(in, responseQueue, this::handleNotification);
+        listenerThread = new Thread(listener);
+        listenerThread.setDaemon(true);
+        listenerThread.start();
     }
     public Response sendRequest(Request request) throws IOException,InterruptedException{
         out.writeObject(request);
         out.flush();
         return responseQueue.take();
     }
-    public void disconnect(){
-        try{
-            if (socket!=null) socket.close();
-        } catch (IOException ignored){}
+    public void disconnect() {
+        try {
+            if (listener != null) {
+                listener.stopListening();
+            }
+            Thread.sleep(20);
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (IOException ignored) {
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
     private void handleNotification(Response notification){
         if (onNotification != null){
