@@ -26,6 +26,7 @@ public class ClientHandler implements Runnable{
     public void run(){
         try{
             out = new ObjectOutputStream(socket.getOutputStream());
+            out.flush();
             in = new ObjectInputStream(socket.getInputStream());
             while(true){
                 Request  request = (Request) in.readObject();
@@ -81,8 +82,6 @@ public class ClientHandler implements Runnable{
                             request.getParam(0),
                             request.getParam(1),
                             Double.parseDouble(request.getParam(2)));
-                    server.broadcastToAuction(request.getParam(0),
-                            Response.notification("Có bid mới", bid));
                     return Response.ok("Đặt giá thành công!",bid);
                 }
                 case CREATE_ITEM:{
@@ -106,6 +105,7 @@ public class ClientHandler implements Runnable{
                             Double.parseDouble(request.getParam(6)),
                             LocalDateTime.now(),
                             LocalDateTime.now().plusMinutes(Long.parseLong(request.getParam(7))), false,0,0);
+                    auction.addObserver(new ServerObserver(server));
                     return Response.ok("Tạo phiên đấu giá thành công.", auction);
                 }
                 default:
@@ -115,7 +115,7 @@ public class ClientHandler implements Runnable{
             return Response.error(e.getMessage());
         }
     }
-    public void sendResponse(Response response){
+    public synchronized void sendResponse(Response response){
         try{
             out.writeObject(response);
             out.flush();

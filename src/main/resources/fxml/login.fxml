@@ -16,7 +16,7 @@
             style="-fx-background-color: #eef2f7;"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="control.LoginController">
+            fx:controller="controller.LoginController">
 
     <center>
         <VBox alignment="CENTER" spacing="14" maxWidth="360.0"

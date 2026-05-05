@@ -1,6 +1,8 @@
-package control;
+package controller;
 
 import client.AuctionClient;
+import client.Session;
+import javafx.stage.Window;
 import protocol.Request;
 import protocol.Response;
 
@@ -21,32 +23,15 @@ import javafx.stage.Stage;
 
 public class RegisterController {
 
-    @FXML
-    private TextField txtFullName;
-
-    @FXML
-    private TextField txtUsername;
-
-    @FXML
-    private TextField txtEmail;
-
-    @FXML
-    private PasswordField txtPassword;
-
-    @FXML
-    private PasswordField txtConfirmPassword;
-
-    @FXML
-    private ComboBox<String> cmbRole;
-
-    @FXML
-    private Button btnRegister;
-
-    @FXML
-    private Label lblError;
-
-    @FXML
-    private Hyperlink linkLogin;
+    @FXML private TextField txtFullName;
+    @FXML private TextField txtUsername;
+    @FXML private TextField txtEmail;
+    @FXML private PasswordField txtPassword;
+    @FXML private PasswordField txtConfirmPassword;
+    @FXML private ComboBox<String> cmbRole;
+    @FXML private Button btnRegister;
+    @FXML private Label lblError;
+    @FXML private Hyperlink linkLogin;
 
     private AuctionClient client;
 
@@ -55,9 +40,13 @@ public class RegisterController {
         cmbRole.setItems(FXCollections.observableArrayList("Bidder", "Seller"));
         cmbRole.getSelectionModel().selectFirst();
 
-        client = new AuctionClient();
+        // Dùng client chia sẻ thay vì new AuctionClient() để tránh
+        // mở nhiều socket trên cùng một phiên app
+        client = Session.getInstance().getClient();
         try {
-            client.connect();
+            if (!client.isConnected()) {
+                client.connect();
+            }
         } catch (Exception e) {
             showError("Không thể kết nối tới server: " + e.getMessage());
         }
@@ -74,39 +63,36 @@ public class RegisterController {
         String confirmPassword = txtConfirmPassword.getText();
         String role = cmbRole.getValue();
 
-        // Validate
         if (fullName.isEmpty() || username.isEmpty() || email.isEmpty()
                 || password.isEmpty() || confirmPassword.isEmpty()) {
             showError("Vui lòng điền đầy đủ tất cả các trường.");
             return;
         }
-
         if (username.length() < 3) {
             showError("Tên đăng nhập phải có ít nhất 3 ký tự.");
             return;
         }
-
         if (!email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
             showError("Email không hợp lệ.");
             return;
         }
-
         if (password.length() < 6) {
             showError("Mật khẩu phải có ít nhất 6 ký tự.");
             return;
         }
-
         if (!password.equals(confirmPassword)) {
             showError("Mật khẩu xác nhận không khớp.");
             return;
         }
-
         if (role == null) {
             showError("Vui lòng chọn vai trò.");
             return;
         }
+        if (!client.isConnected()) {
+            showError("Chưa kết nối được tới server.");
+            return;
+        }
 
-        // Gửi request
         try {
             Request registerRequest = new Request(
                     Request.Type.REGISTER,
@@ -114,6 +100,10 @@ public class RegisterController {
             );
             Response response = client.sendRequest(registerRequest);
 
+            if (response == null) {
+                showError("Server không phản hồi. Hãy thử lại.");
+                return;
+            }
             if (response.getStatus() == Response.Status.OK) {
                 showAlert(Alert.AlertType.INFORMATION, "Thành công",
                         "Đăng ký thành công! Hãy đăng nhập để tiếp tục.");
@@ -145,12 +135,13 @@ public class RegisterController {
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {
-        Platform.runLater(() -> {
             Alert alert = new Alert(type);
             alert.setTitle(title);
             alert.setHeaderText(null);
             alert.setContentText(content);
             alert.showAndWait();
-        });
+        Window owner = btnRegister.getScene().getWindow();
+        alert.initOwner(owner);
+        alert.showAndWait();
     }
 }
