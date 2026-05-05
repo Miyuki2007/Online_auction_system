@@ -1,9 +1,11 @@
 package model.auction;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class BidTransaction implements Comparable<BidTransaction> {
+public class BidTransaction implements Comparable<BidTransaction>, Serializable {
+    private static final long serialVersionUID=1L;
     private final String id;
     private final String auctionId; // Rất quan trọng để tracking
     private final String bidderId;
