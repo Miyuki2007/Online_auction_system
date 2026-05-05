@@ -1,21 +1,24 @@
 package client;
 
-import model.user.User;
+import model.auction.Auction;
 import model.user.Admin;
 import model.user.Bidder;
 import model.user.Seller;
-import java.net.Socket;
+import model.user.User;
 
 /**
- * Session quản lý trạng thái đăng nhập phía Client.
+ * Session quản lý trạng thái phiên làm việc phía Client.
  * Áp dụng Design Pattern: Singleton & Thread-safe.
  */
 public class Session {
     private static Session instance;
-    private User loggedInUser;
-    private Socket clientSocket;
 
-    private Session() {}
+    private User loggedInUser;
+    private AuctionClient auctionClient;
+    private Auction selectedAuction;
+
+    private Session() {
+    }
 
     public static synchronized Session getInstance() {
         if (instance == null) {
@@ -23,6 +26,8 @@ public class Session {
         }
         return instance;
     }
+
+    // ===== USER =====
 
     public User getLoggedInUser() {
         return loggedInUser;
@@ -44,23 +49,43 @@ public class Session {
         return loggedInUser instanceof Seller;
     }
 
-    public Socket getClientSocket() {
-        return clientSocket;
+    // ===== AUCTION CLIENT =====
+
+
+    public AuctionClient getClient() {
+        if (auctionClient == null) {
+            auctionClient = new AuctionClient();
+        }
+        return auctionClient;
     }
 
-    public void setClientSocket(Socket socket) {
-        this.clientSocket = socket;
+    public AuctionClient getAuctionClient() {
+        return getClient();
     }
+
+    public void setAuctionClient(AuctionClient client) {
+        this.auctionClient = client;
+    }
+
+    // ===== SELECTED AUCTION (truyền giữa các scene) =====
+
+    public Auction getSelectedAuction() {
+        return selectedAuction;
+    }
+
+    public void setSelectedAuction(Auction auction) {
+        this.selectedAuction = auction;
+    }
+
+    // ===== CLEAR (đăng xuất / thoát app) =====
 
     public void clear() {
         loggedInUser = null;
-        try {
-            if (clientSocket != null && !clientSocket.isClosed()) {
-                clientSocket.close();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        selectedAuction = null;
+
+        if (auctionClient != null) {
+            auctionClient.disconnect();
+            auctionClient = null;
         }
-        clientSocket = null;
     }
 }
