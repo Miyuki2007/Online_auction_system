@@ -3,11 +3,20 @@ package model.item;
 
 public class Vehicle extends Item {
     private String type;
+
     public Vehicle(String id, String name, String description, double price, String type) {
         super(id, name, description, price);
+        setType(type);
+    }
+
+    public String getType() { return type; }
+
+    public void setType(String type) {
+        if (type == null || type.trim().isEmpty()) {
+            throw new IllegalArgumentException("Loại phương tiện không hợp lệ.");
+        }
         this.type = type;
     }
-    public String getType() {return type; }
     @Override
     public void displayDetails() {
         System.out.println("Tên sản phẩm: " + getName() + " Loại vật phẩm: Phương tiện");
