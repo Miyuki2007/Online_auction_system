@@ -3,6 +3,7 @@ import model.item.Item;
 import model.item.Electronics;
 import model.item.Vehicle;
 import model.item.Art;
+import model.item.Others;
 
 public class ItemFactory {
     public static Item createItem(String type, String id, String name, String desc, double price, String specialAttr) {
@@ -11,6 +12,8 @@ public class ItemFactory {
         }
         String itemType = type.toUpperCase();
         switch (itemType) {
+            case "OTHERS":
+                return new Others(id, name, desc, price, specialAttr);
             case "ELECTRONICS":
                 return new Electronics(id, name, desc, price, specialAttr);
             case "VEHICLE":
