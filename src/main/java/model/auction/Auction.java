@@ -246,4 +246,19 @@ public class Auction implements AuctionSubject,Serializable {
                         : "Tắt"
         );
     }
+    public boolean isEnded() {
+        return this.state == AuctionState.FINISHED ||
+                this.state == AuctionState.PAID ||
+                this.state == AuctionState.CANCELED;
+    }
+    public void end() {
+        bidLock.lock();
+        try {
+            if (this.state == AuctionState.RUNNING) {
+                finishAuction();
+            }
+        } finally {
+            bidLock.unlock();
+        }
+    }
 }
