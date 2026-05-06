@@ -1,4 +1,4 @@
--- Tạo database
+
 CREATE DATABASE IF NOT EXISTS auctiondb;
 USE auctiondb;
 
