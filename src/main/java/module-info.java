@@ -2,6 +2,8 @@ module Online_auction_system {
     requires javafx.controls;
     requires javafx.fxml;
     requires java.base;
+    requires java.sql;
+    requires mysql.connector.j;
 
     // FXMLLoader cần reflection vào các package controller/client để inject @FXML
     opens controller to javafx.fxml;
