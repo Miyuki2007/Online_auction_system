@@ -9,8 +9,5 @@
         <module name="Online_auction_system" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="online-auction" target="25" />
-    </bytecodeTargetLevel>
   </component>
 </project>
