@@ -5,11 +5,12 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseConnection {
-    // 1. Khai báo thông tin kết nối
-    private static final String URL = "private static final String URL = \"jdbc:mysql://localhost:3306/auctiondb\";";
-    private static final String USER = "root"; // Thường mặc định là root
-    private static final String PASSWORD = "nhap_mat_khau_cua_ban"; // Đổi thành mật khẩu MySQL của bạn
+    // 1. Khai báo thông tin kết nối (ĐÃ SỬA LẠI CHUẨN)
+    private static final String URL = "jdbc:mysql://localhost:3306/auctiondb";
+    private static final String USER = "root";
+    private static final String PASSWORD = "Hoangngoc07@vb"; // Nhớ điền mật khẩu MySQL của bạn vào đây
 
+    // ... các phần dưới giữ nguyên ...
     // 2. Biến tĩnh lưu trữ kết nối duy nhất
     private static Connection connection = null;
 
