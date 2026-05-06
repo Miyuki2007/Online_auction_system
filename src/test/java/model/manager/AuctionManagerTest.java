@@ -26,7 +26,7 @@ class AuctionManagerTest {
     private Bidder bidder2;
     private Item testItem;
 
-    @BeforeAll
+    @BeforeEach
     void setUp() throws Exception{
         resetSingleton();
         manager = AuctionManager.getInstance();

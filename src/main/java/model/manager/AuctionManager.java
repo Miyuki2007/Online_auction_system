@@ -8,6 +8,7 @@ import model.auction.exception.AuthenticationException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +52,7 @@ public class AuctionManager {
      * Lấy tất cả các phiên đấu giá (bao gồm cả đang hoạt động và đã kết thúc).
      */
     public List<Auction> getAllAuctions() {
-        return new ArrayList<>(activeAuctions.values());
+        return Collections.unmodifiableList(new ArrayList<>(activeAuctions.values()));
     }
 
     /**
@@ -132,10 +133,9 @@ public class AuctionManager {
     }
 
     public List<Auction> getActiveAuctions() {
-        return new ArrayList<>(activeAuctions.values());
+        return Collections.unmodifiableList(new ArrayList<>(activeAuctions.values()));
     }
-
     public List<User> getRegisteredUsers() {
-        return new ArrayList<>(registeredUsers.values());
+        return Collections.unmodifiableList(new ArrayList<>(registeredUsers.values()));
     }
 }
