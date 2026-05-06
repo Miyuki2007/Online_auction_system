@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 // Dùng singleton để tạo manager
 public class AuctionManager {
@@ -36,11 +37,53 @@ public class AuctionManager {
         return instance;
     }
 
+    // --- CÁC METHOD BỔ SUNG ---
+
+    /**
+     * Lấy người dùng dựa trên ID.
+     * Giả định trong model User của bạn, username chính là ID duy nhất.
+     */
+    public User getUserById(String userId) {
+        return registeredUsers.get(userId);
+    }
+
+    /**
+     * Lấy tất cả các phiên đấu giá (bao gồm cả đang hoạt động và đã kết thúc).
+     */
+    public List<Auction> getAllAuctions() {
+        return new ArrayList<>(activeAuctions.values());
+    }
+
+    /**
+     * Lọc danh sách các phiên đấu giá theo ID người bán.
+     */
+    public List<Auction> getAuctionsBySeller(String sellerId) {
+        return activeAuctions.values().stream()
+                .filter(auction -> auction.getSellerId().equals(sellerId))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Kiểm tra thời gian hết hạn của tất cả các phiên đấu giá.
+     * Phương thức này có thể được gọi bởi một luồng chạy nền (Background Thread).
+     */
+    public void checkAllExpirations() {
+        LocalDateTime now = LocalDateTime.now();
+        for (Auction auction : activeAuctions.values()) {
+            // Kiểm tra nếu phiên đấu giá đã quá thời gian kết thúc nhưng chưa đóng
+            if (auction.getEndTime().isBefore(now) && !auction.isEnded()) {
+                auction.end();
+                System.out.println("Auction " + auction.getId() + " has automatically ended.");
+            }
+        }
+    }
+
+    // --- CÁC METHOD CŨ ---
+
     public void registerUser(User user) {
         if (user == null || user.getUsername() == null) {
             throw new IllegalArgumentException("Người dùng hoặc tên đăng nhập không hợp lệ.");
         }
-        // putIfAbsent giải quyết vấn đề race-condition (đảm bảo atomic check-then-act)
         if (registeredUsers.putIfAbsent(user.getUsername(), user) != null) {
             throw new IllegalArgumentException("Tên đăng nhập đã tồn tại.");
         }

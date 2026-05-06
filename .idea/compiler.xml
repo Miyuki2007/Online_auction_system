@@ -7,8 +7,10 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="Online_auction_system" />
-        <module name="online-auction" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="online-auction" target="25" />
+    </bytecodeTargetLevel>
   </component>
 </project>
