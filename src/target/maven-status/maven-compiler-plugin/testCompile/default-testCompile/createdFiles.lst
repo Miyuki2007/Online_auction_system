@@ -1,0 +1,7 @@
+model\auction\AuctionTest.class
+server\MultiClientTest.class
+model\auction\AuctionTest$2.class
+model\user\UserTest.class
+model\auction\AuctionStateTest.class
+model\auction\AuctionTest$1.class
+model\manager\AuctionManagerTest.class
