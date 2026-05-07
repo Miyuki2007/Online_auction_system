@@ -20,6 +20,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import protocol.requests.LoginRequest;
+import protocol.responses.SuccessResponse;
 
 public class LoginController {
 
@@ -45,42 +47,40 @@ public class LoginController {
     }
 
     @FXML
-    void handleLogin() {
-        lblError.setText("");
-
-        String username = txtUsername.getText() == null ? "" : txtUsername.getText().trim();
-        String password = txtPassword.getText() == null ? "" : txtPassword.getText();
+    private void handleLogin() {
+        String username = txtUsername.getText().trim();
+        String password = txtPassword.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
-            showError("Vui lòng nhập tên đăng nhập và mật khẩu.");
-            return;
-        }
-        if (!client.isConnected()) {
-            showError("Chưa kết nối được tới server.");
+            lblError.setText("Vui lòng nhập đầy đủ thông tin.");
             return;
         }
 
         try {
-            Request loginRequest = new Request(Request.Type.LOGIN, username, password);
-            Response response = client.sendRequest(loginRequest);
-
-            if (response == null) {
-                showError("Server không phản hồi. Hãy thử lại.");
-                return;
+            AuctionClient client = Session.getInstance().getClient();
+            if (!client.isConnected()) {
+                client.connect();
             }
-            if (response.getStatus() == Response.Status.OK) {
-                User user = (User) response.getData();
+
+            // ✅ Type-safe: dùng class con LoginRequest
+            LoginRequest req = new LoginRequest(username, password);
+            Response res = client.sendRequest(req);
+
+            if (res.isOk()) {
+                // ✅ Type-safe: ép kiểu data
+                SuccessResponse success = (SuccessResponse) res;
+                User user = success.getDataAs(User.class);
+
                 Session.getInstance().setLoggedInUser(user);
-                showAlert(Alert.AlertType.INFORMATION,
-                        "Thành công",
-                        "Xin chào " + user.getFullName() + " (" + user.getRole() + ")");
-                // TODO: chuyển sang dashboard tương ứng với role khi nhóm xây xong UI
-                // goToDashboard(user);
+
+                showAlert(Alert.AlertType.INFORMATION, "Thành công",
+                        "Đăng nhập thành công! Xin chào, " + user.getUsername() + ".");
+
             } else {
-                showError(response.getMessage());
+                lblError.setText(res.getMessage());
             }
         } catch (Exception e) {
-            showError("Lỗi khi gửi yêu cầu: " + e.getMessage());
+            lblError.setText("Lỗi kết nối: " + e.getMessage());
         }
     }
 
