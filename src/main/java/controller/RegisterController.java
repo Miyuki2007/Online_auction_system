@@ -1,10 +1,10 @@
-package controller;
+ package controller;
 
 import client.AuctionClient;
 import client.Session;
 import javafx.stage.Window;
-import protocol.Request;
 import protocol.Response;
+import protocol.requests.RegisterRequest;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -40,8 +40,6 @@ public class RegisterController {
         cmbRole.setItems(FXCollections.observableArrayList("Bidder", "Seller"));
         cmbRole.getSelectionModel().selectFirst();
 
-        // Dùng client chia sẻ thay vì new AuctionClient() để tránh
-        // mở nhiều socket trên cùng một phiên app
         client = Session.getInstance().getClient();
         try {
             if (!client.isConnected()) {
@@ -94,8 +92,7 @@ public class RegisterController {
         }
 
         try {
-            Request registerRequest = new Request(
-                    Request.Type.REGISTER,
+            RegisterRequest registerRequest = new RegisterRequest(
                     username, password, email, fullName, role
             );
             Response response = client.sendRequest(registerRequest);
@@ -135,11 +132,10 @@ public class RegisterController {
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {
-            Alert alert = new Alert(type);
-            alert.setTitle(title);
-            alert.setHeaderText(null);
-            alert.setContentText(content);
-
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
         Window owner = btnRegister.getScene().getWindow();
         alert.initOwner(owner);
         alert.showAndWait();
