@@ -10,7 +10,6 @@ public class DatabaseConnection {
     private static final String USER = "root";
     private static final String PASSWORD = "Hoangngoc07@vb"; // Nhớ điền mật khẩu MySQL của bạn vào đây
 
-    // ... các phần dưới giữ nguyên ...
     // 2. Biến tĩnh lưu trữ kết nối duy nhất
     private static Connection connection = null;
 

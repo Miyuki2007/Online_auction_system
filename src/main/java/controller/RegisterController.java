@@ -139,7 +139,7 @@ public class RegisterController {
             alert.setTitle(title);
             alert.setHeaderText(null);
             alert.setContentText(content);
-            alert.showAndWait();
+
         Window owner = btnRegister.getScene().getWindow();
         alert.initOwner(owner);
         alert.showAndWait();

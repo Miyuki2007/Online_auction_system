@@ -107,6 +107,7 @@ public class LoginController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(content);
+
         Window owner = btnLogin.getScene().getWindow();
         alert.initOwner(owner);
         alert.showAndWait();
