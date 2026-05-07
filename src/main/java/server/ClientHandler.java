@@ -1,128 +1,210 @@
 package server;
+
 import model.auction.Auction;
+import model.factory.ItemFactory;
+import model.item.Item;
 import model.manager.AuctionManager;
 import model.user.*;
-import model.item.Item;
-import model.factory.ItemFactory;
 import model.auction.BidTransaction;
-import protocol.Response;
 import protocol.Request;
+import protocol.Response;
+import protocol.requests.*;
+import protocol.responses.ErrorResponse;
+import protocol.responses.NotificationResponse;
+import protocol.responses.SuccessResponse;
 
 import java.io.*;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.List;
-public class ClientHandler implements Runnable{
+import java.util.UUID;
+
+public class ClientHandler implements Runnable {
     private final Socket socket;
     private final AuctionServer server;
-    private ObjectInputStream in;
     private ObjectOutputStream out;
+    private ObjectInputStream in;
     private String watchAuctionId;
+
     public ClientHandler(Socket socket, AuctionServer server) {
         this.socket = socket;
         this.server = server;
     }
+
     @Override
-    public void run(){
-        try{
+    public void run() {
+        try {
             out = new ObjectOutputStream(socket.getOutputStream());
-            out.flush();
             in = new ObjectInputStream(socket.getInputStream());
-            while(true){
-                Request  request = (Request) in.readObject();
+
+            while (true) {
+                Request request = (Request) in.readObject();
                 Response response = handleRequest(request);
                 sendResponse(response);
             }
-        } catch (EOFException e){
-            System.out.println("Client ngắt kết nối");
-        } catch (Exception e){
-            System.err.println("Lỗi xử lí Client: "+ e.getMessage());
-        } finally{
+        } catch (EOFException e) {
+            System.out.println("Client ngắt kết nối.");
+        } catch (Exception e) {
+            System.err.println("Lỗi xử lý client: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
             server.removeClient(this);
-            try{ socket.close();} catch(IOException ignored){}
+            try { socket.close(); } catch (IOException ignored) {}
         }
     }
-    private Response handleRequest(Request request){
-        AuctionManager manager = AuctionManager.getInstance();
-        try{
-            switch(request.getType()){
-                case LOGIN: {
-                    User user = manager.authenticateUser(request.getParam(0), request.getParam(1));
-                    return Response.ok("Đăng nhâp thành công",user);
 
-                }
-                case REGISTER:{
-                    User user;
-                    String role = request.getParam(4).toUpperCase();
-                    switch(role){
-                        case "BIDDER":
-                            user = new Bidder(request.getParam(0),request.getParam(1), request.getParam(2),request.getParam(3));
-                            break;
-                        case "SELLER":
-                            user = new Seller(request.getParam(0),request.getParam(1), request.getParam(2),request.getParam(3));
-                            break;
-                        default:
-                            return Response.error("Vai trò không hợp lệ.");
-                    }
-                    manager.registerUser(user);
-                    return Response.ok("Đăng kí thành công", user);
-                }
-                case GET_AUCTIONS:{
-                    List<Auction> auctions = manager.getActiveAuctions();
-                    return Response.ok("DANH SÁCH PHIÊN ĐẤU GIÁ", auctions);
-                }
-                case GET_AUCTION_DETAIL:{
-                    Auction auction = manager.findAuctionById(request.getParam(0));
-                    if (auction == null ) return Response.error("Không tìm thấy phiên đấu giá. ");
-                    this.watchAuctionId = auction.getId();
-                    return Response.ok("Chi tiết phiên",auction);
-                }
-                case PLACE_BID:{
-                    BidTransaction bid = manager.placeBid(
-                            request.getParam(0),
-                            request.getParam(1),
-                            Double.parseDouble(request.getParam(2)));
-                    return Response.ok("Đặt giá thành công!",bid);
-                }
-                case CREATE_ITEM:{
-                    Item item = ItemFactory.createItem(
-                            request.getParam(0),request.getParam(1),
-                            request.getParam(2),request.getParam(3),
-                            Double.parseDouble(request.getParam(4)),
-                            request.getParam(5)
-                    );
-                    return Response.ok("Tạo sản phẩm thành công!", item);
-                }
-                case CREATE_AUCTION:{
-                    Item item = ItemFactory.createItem(
-                            request.getParam(1),java.util.UUID.randomUUID().toString(),
-                            request.getParam(2),request.getParam(3),
-                            Double.parseDouble(request.getParam(4)),
-                            request.getParam(5)
-                    );
-                    Auction auction = manager.createAuction(
-                            request.getParam(0),item,
-                            Double.parseDouble(request.getParam(6)),
-                            LocalDateTime.now(),
-                            LocalDateTime.now().plusMinutes(Long.parseLong(request.getParam(7))), false,0,0);
-                    auction.addObserver(new ServerObserver(server));
-                    return Response.ok("Tạo phiên đấu giá thành công.", auction);
-                }
-                default:
-                    return Response.error("Yêu cầu không hợp lệ.");
+    private Response handleRequest(Request request) {
+        AuctionManager manager = AuctionManager.getInstance();
+
+        try {
+            // ✅ Sử dụng instanceof pattern matching (Java 16+)
+            if (request instanceof LoginRequest req) {
+                return handleLogin(req, manager);
             }
-        }catch (Exception e){
-            return Response.error(e.getMessage());
+            if (request instanceof RegisterRequest req) {
+                return handleRegister(req, manager);
+            }
+            if (request instanceof GetAuctionRequest) {
+                return handleGetAuctions(manager);
+            }
+            if (request instanceof GetAuctionDetailRequest req) {
+                return handleGetAuctionDetail(req, manager);
+            }
+            if (request instanceof PlaceBidRequest req) {
+                return handlePlaceBid(req, manager);
+            }
+            if (request instanceof CreateAuctionRequest req) {
+                return handleCreateAuction(req, manager);
+            }
+            if (request instanceof CancelAuctionRequest req) {
+                return handleCancelAuction(req, manager);
+            }
+            if (request instanceof GetMyAuctionRequest req) {
+                return handleGetMyAuctions(req, manager);
+            }
+
+            return new ErrorResponse("Yêu cầu không được hỗ trợ: "
+                    + request.getType());
+        } catch (Exception e) {
+            e.printStackTrace();
+            String msg = e.getMessage();
+            if (msg == null) msg = e.getClass().getSimpleName();
+            return new ErrorResponse(msg);
         }
     }
-    public synchronized void sendResponse(Response response){
-        try{
+
+    // ========== HANDLERS ==========
+
+    private Response handleLogin(LoginRequest req, AuctionManager manager) {
+        User user = manager.authenticateUser(req.getUsername(), req.getPassword());
+        return new SuccessResponse("Đăng nhập thành công.", user);
+    }
+
+    private Response handleRegister(RegisterRequest req, AuctionManager manager) {
+        User user;
+        switch (req.getRole().toUpperCase()) {
+            case "BIDDER":
+                user = new Bidder(req.getUsername(), req.getPassword(),
+                        req.getEmail(), req.getFullName());
+                break;
+            case "SELLER":
+                user = new Seller(req.getUsername(), req.getPassword(),
+                        req.getEmail(), req.getFullName());
+                break;
+            default:
+                return new ErrorResponse("Role không hợp lệ: " + req.getRole());
+        }
+        manager.registerUser(user);
+        return new SuccessResponse("Đăng ký thành công.", user);
+    }
+
+    private Response handleGetAuctions(AuctionManager manager) {
+        List<Auction> auctions = manager.getActiveAuctions();
+        return new SuccessResponse("Danh sách phiên đấu giá.", auctions);
+    }
+
+    private Response handleGetAuctionDetail(GetAuctionDetailRequest req,
+                                            AuctionManager manager) {
+        Auction auction = manager.findAuctionById(req.getAuctionId());
+        if (auction == null) {
+            return new ErrorResponse("Không tìm thấy phiên đấu giá.");
+        }
+        this.watchAuctionId = auction.getId();
+        return new SuccessResponse("Chi tiết phiên đấu giá.", auction);
+    }
+
+    private Response handlePlaceBid(PlaceBidRequest req, AuctionManager manager) {
+        BidTransaction bid = manager.placeBid(
+                req.getAuctionId(),
+                req.getBidderId(),
+                req.getAmount());
+
+        server.broadcastToAuction(req.getAuctionId(),
+                new NotificationResponse(
+                        NotificationResponse.NotificationType.BID_UPDATE,
+                        "Có bid mới", bid));
+
+        return new SuccessResponse("Đặt giá thành công!", bid);
+    }
+
+    private Response handleCreateAuction(CreateAuctionRequest req,
+                                         AuctionManager manager) {
+        Item item = ItemFactory.createItem(
+                req.getItemType(),
+                UUID.randomUUID().toString(),
+                req.getItemName(),
+                req.getItemDescription(),
+                req.getStartingPrice(),
+                req.getSpecialAttribute()
+        );
+
+        Auction auction = manager.createAuction(
+                req.getSellerId(),
+                item,
+                req.getStartingPrice(),
+                LocalDateTime.now(),
+                LocalDateTime.now().plusMinutes(req.getDurationMinutes()),
+                req.isAntiSnipeEnabled(),
+                req.isAntiSnipeEnabled() ? 30 : 0,
+                req.isAntiSnipeEnabled() ? 60 : 0
+        );
+
+
+        return new SuccessResponse("Tạo phiên đấu giá thành công.", auction);
+    }
+
+    private Response handleCancelAuction(CancelAuctionRequest req,
+                                         AuctionManager manager) {
+        Auction auction = manager.findAuctionById(req.getAuctionId());
+        if (auction == null) {
+            return new ErrorResponse("Không tìm thấy phiên.");
+        }
+        if (!auction.getSellerId().equals(req.getSellerId())) {
+            return new ErrorResponse("Chỉ chủ phiên mới được cancel.");
+        }
+        auction.cancel();
+        return new SuccessResponse("Đã hủy phiên đấu giá.", auction);
+    }
+
+    private Response handleGetMyAuctions(GetMyAuctionRequest req,
+                                         AuctionManager manager) {
+        List<Auction> myAuctions = manager.getActiveAuctions().stream()
+                .filter(a -> a.getSellerId().equals(req.getSellerId()))
+                .toList();
+        return new SuccessResponse("Auctions của bạn.", myAuctions);
+    }
+
+    // ========== UTILITIES ==========
+
+    public void sendResponse(Response response) {
+        try {
             out.writeObject(response);
             out.flush();
             out.reset();
-        } catch (IOException e){
-            System.err.println("Lỗi gửi response: "+ e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Lỗi gửi response: " + e.getMessage());
         }
     }
-    public String getWatchAuctionId(){ return  watchAuctionId;}
+
+    public String getWatchAuctionId() { return watchAuctionId; }
 }
