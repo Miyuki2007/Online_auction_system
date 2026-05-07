@@ -5,38 +5,32 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseConnection {
-    // 1. Khai báo thông tin kết nối (ĐÃ SỬA LẠI CHUẨN)
-    private static final String URL = "jdbc:mysql://localhost:3306/auctiondb";
-    private static final String USER = "root";
-    private static final String PASSWORD = "Hoangngoc07@vb"; // Nhớ điền mật khẩu MySQL của bạn vào đây
+    // Lấy thông tin từ Biến môi trường, nếu không có thì dùng giá trị mặc định (localhost)
+    private static final String URL = getEnvOrDefault("DB_URL", "jdbc:mysql://localhost:3306/auctiondb");
+    private static final String USER = getEnvOrDefault("DB_USER", "root");
+    private static final String PASSWORD = getEnvOrDefault("DB_PASS", "Hoangngoc07@vb");
 
-    // 2. Biến tĩnh lưu trữ kết nối duy nhất
     private static Connection connection = null;
 
-    // 3. Constructor private để ngăn việc dùng từ khóa 'new' từ bên ngoài class
-    private DatabaseConnection() {
+    private DatabaseConnection() {}
+
+    // Hàm hỗ trợ lấy biến môi trường hoặc dùng giá trị mặc định
+    private static String getEnvOrDefault(String key, String defaultValue) {
+        String value = System.getenv(key);
+        return (value != null && !value.isEmpty()) ? value : defaultValue;
     }
 
-    // 4. Hàm cấp phát kết nối
     public static Connection getConnection() {
-        // Nếu chưa có kết nối nào hoặc kết nối đã bị đóng, thì mới tạo mới
         try {
             if (connection == null || connection.isClosed()) {
-                // Tải driver (có thể bỏ qua với các bản JDBC mới, nhưng viết vào cho an toàn)
                 Class.forName("com.mysql.cj.jdbc.Driver");
-
-                // Thực hiện kết nối
                 connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println("✅ Kết nối MySQL thành công!");
+                System.out.println("✅ Kết nối thành công tới: " + URL);
             }
-        } catch (ClassNotFoundException e) {
-            System.err.println("❌ Không tìm thấy thư viện MySQL JDBC Driver!");
-            e.printStackTrace();
-        } catch (SQLException e) {
-            System.err.println("❌ Kết nối thất bại. Kiểm tra lại URL, Username hoặc Password!");
+        } catch (ClassNotFoundException | SQLException e) {
+            System.err.println("❌ Lỗi kết nối Database: " + e.getMessage());
             e.printStackTrace();
         }
-
         return connection;
     }
 }
