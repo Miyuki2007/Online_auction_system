@@ -1,5 +1,6 @@
 package model.manager;
 
+import dao.UserDAO;
 import model.auction.Auction;
 import model.auction.BidTransaction;
 import model.item.Item;
@@ -82,26 +83,50 @@ public class AuctionManager {
     // --- CÁC METHOD CŨ ---
 
     public void registerUser(User user) {
-        if (user == null || user.getUsername() == null) {
-            throw new IllegalArgumentException("Người dùng hoặc tên đăng nhập không hợp lệ.");
-        }
-        if (registeredUsers.putIfAbsent(user.getUsername(), user) != null) {
-            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại.");
+        // 1. Khởi tạo DAO
+        UserDAO userDAO = new UserDAO();
+
+        // 2. Thực hiện lưu vào Database
+        boolean isSaved = userDAO.registerUser(
+                user.getUsername(),
+                user.getPassword(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole()
+        );
+
+        if (isSaved) {
+            System.out.println("Đã lưu user " + user.getUsername() + " vào database thành công.");
+        } else {
+            throw new RuntimeException("Lỗi: Không thể lưu người dùng vào Database.");
         }
     }
 
     public User getUserByUsername(String username) {
-        return registeredUsers.get(username);
+        // Thử lấy từ bộ nhớ trước (Cache)
+        User user = registeredUsers.get(username);
+
+        // Nếu không thấy, thử tìm trong Database
+        if (user == null) {
+            UserDAO userDAO = new UserDAO();
+            user = userDAO.findByUsername(username);
+        }
+
+        return user;
     }
 
     public User authenticateUser(String username, String password) {
-        User user = getUserByUsername(username);
+        UserDAO userDAO = new UserDAO();
+        User user = userDAO.authenticate(username, password); // Sử dụng hàm authenticate mình đã hướng dẫn ở bài trước
+
         if (user == null) {
-            throw new AuthenticationException("Tên đăng nhập không tồn tại.");
+            // Bạn có thể giữ ném lỗi AuthenticationException như cũ
+            throw new AuthenticationException("Tên đăng nhập hoặc mật khẩu không chính xác.");
         }
-        if (!user.authenticate(password)) {
-            throw new AuthenticationException("Mật khẩu không đúng.");
-        }
+
+
+        registeredUsers.put(username, user);
+
         return user;
     }
 

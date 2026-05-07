@@ -8,12 +8,14 @@ CREATE TABLE Users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
+    full_name VARCHAR(100),
+    role VARCHAR(20),
     phone_number VARCHAR(15),
     address TEXT,
-    balance DECIMAL(15, 2) DEFAULT 0.00, -- Số dư ví điện tử nếu có
+    balance DECIMAL(15, 2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
+DESCRIBE Users;
 -- Bảng Danh mục sản phẩm
 CREATE TABLE Categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,

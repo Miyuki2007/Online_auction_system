@@ -1,7 +1,8 @@
-package model.manager.categories; // Hoặc package dao;
+package dao;
+
 import java.util.List;
 
-public interface DAO<T> {
+public interface BaseDAO<T> {
     List<T> getAll();
     T getById(int id);
     boolean insert(T t);
