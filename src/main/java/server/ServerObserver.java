@@ -3,7 +3,8 @@ package server;
 import model.auction.Auction;
 import model.auction.BidTransaction;
 import model.auction.observer.AuctionObserver;
-import protocol.Response;
+import protocol.responses.NotificationResponse;
+import protocol.responses.NotificationResponse.NotificationType;
 
 public class ServerObserver implements AuctionObserver{
     private final AuctionServer server;
@@ -11,23 +12,28 @@ public class ServerObserver implements AuctionObserver{
     public ServerObserver(AuctionServer server) {
         this.server = server;
     }
+
     @Override
     public void onNewBid(Auction auction, BidTransaction bid){
         server.broadcastToAuction(
-                auction.getId(),Response.notification("BID_UPDATE",bid)
+                auction.getId(),
+                new NotificationResponse(NotificationType.BID_UPDATE, "Có bid mới", bid)
         );
     }
+
     @Override
     public void onAuctionStateChanged(Auction auction){
         server.broadcastToAuction(
-                auction.getId(),Response.notification("STATE_CHANGED",auction.getState())
+                auction.getId(),
+                new NotificationResponse(NotificationType.STATE_CHANGED, "Trạng thái thay đổi", auction.getState())
         );
     }
 
     @Override
     public void onAuctionTimeExtended(Auction auction, long extensionSeconds){
         server.broadcastToAuction(
-                auction.getId(),Response.notification("TIME_EXTENDED",extensionSeconds)
+                auction.getId(),
+                new NotificationResponse(NotificationType.TIME_EXTENDED, "Thời gian được kéo dài", extensionSeconds)
         );
     }
 }
