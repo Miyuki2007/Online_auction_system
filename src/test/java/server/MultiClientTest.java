@@ -3,6 +3,9 @@ package server;
 import client.AuctionClient;
 import protocol.Request;
 import protocol.Response;
+import protocol.requests.GetAuctionRequest;
+import protocol.requests.LoginRequest;
+import protocol.requests.RegisterRequest;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -40,19 +43,27 @@ public class MultiClientTest {
         client.connect();
         System.out.println("[ " + username + " ]: Kết nối thành công");
 
-        Request registerReq = new Request(Request.Type.REGISTER,username,password,email,fullName,role);
+        Request registerReq = new RegisterRequest(username,password,email,fullName,role);
         Response registerRes = client.sendRequest(registerReq);
         System.out.println("[ " + username + " ] đăng kí: " + registerRes.getStatus() + " - " + registerRes.getMessage());
 
-        Request loginReq = new Request(Request.Type.LOGIN,username,password);
+        Request loginReq = new LoginRequest(username,password);
         Response loginRes = client.sendRequest(loginReq);
         System.out.println("[ " + username + " ] đăng nhập: " + loginRes.getStatus() + " - " + loginRes.getMessage());
 
-        Request listReq = new Request(Request.Type.GET_AUCTIONS);
+        Request listReq = new GetAuctionRequest();
         Response listRes = client.sendRequest(listReq);
         System.out.println("[ " + username + " ] GET_AUCTION: " + listRes.getStatus() + " - " + listRes.getMessage());
 
         client.disconnect();
         System.out.println("[ " + username + " ] Ngắt kết nối\n");
+    }
+    private static void printResult(String username, String action, Response res) {
+        if (res == null) {
+            System.out.println("[ " + username + " ] " + action + ": KHÔNG CÓ PHẢN HỒI (timeout)");
+        } else {
+            System.out.println("[ " + username + " ] " + action + ": "
+                    + res.getStatus() + " - " + res.getMessage());
+        }
     }
 }
