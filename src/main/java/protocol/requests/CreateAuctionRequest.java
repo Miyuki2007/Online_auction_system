@@ -11,6 +11,7 @@ public class CreateAuctionRequest extends Request {
     private final String itemDescription;
     private final String specialAttribute; // brand/artist/type tuỳ loại
     private final double startingPrice;
+    private final byte[] imageData;
     private final long durationMinutes;
     private final boolean antiSnipeEnabled;
 
@@ -18,7 +19,7 @@ public class CreateAuctionRequest extends Request {
                                 String itemName, String itemDescription,
                                 String specialAttribute,
                                 double startingPrice, long durationMinutes,
-                                boolean antiSnipeEnabled) {
+                                boolean antiSnipeEnabled, byte[] imageData) {
         if (startingPrice <= 0) {
             throw new IllegalArgumentException("Giá khởi điểm phải > 0");
         }
@@ -33,6 +34,10 @@ public class CreateAuctionRequest extends Request {
         this.startingPrice = startingPrice;
         this.durationMinutes = durationMinutes;
         this.antiSnipeEnabled = antiSnipeEnabled;
+        if (imageData != null && imageData.length>5_000_000){
+            throw new IllegalArgumentException("Ảnh không được quá 5MB");
+        }
+        this.imageData=imageData;
     }
 
     @Override
@@ -46,4 +51,5 @@ public class CreateAuctionRequest extends Request {
     public double getStartingPrice() { return startingPrice; }
     public long getDurationMinutes() { return durationMinutes; }
     public boolean isAntiSnipeEnabled() { return antiSnipeEnabled; }
+    public byte[] getImageData(){return imageData; }
 }
