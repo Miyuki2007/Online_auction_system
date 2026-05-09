@@ -155,7 +155,8 @@ public class ClientHandler implements Runnable {
                 req.getItemName(),
                 req.getItemDescription(),
                 req.getStartingPrice(),
-                req.getSpecialAttribute()
+                req.getSpecialAttribute(),
+                req.getImageData()
         );
 
         Auction auction = manager.createAuction(
