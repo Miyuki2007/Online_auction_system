@@ -1,14 +1,19 @@
 module Online_auction_system {
+    // ===== JavaFX =====
     requires javafx.controls;
     requires javafx.fxml;
-    requires java.base;
+    requires java.desktop;
+
+    // ===== Database =====
     requires java.sql;
+    requires java.naming;
     requires mysql.connector.j;
 
-    // FXMLLoader cần reflection vào các package controller/client để inject @FXML
+    // ===== Mở reflection cho FXMLLoader inject @FXML =====
     opens controller to javafx.fxml;
-    opens client    to javafx.fxml;
+    opens controller.seller to javafx.fxml;
 
+    // ===== Exports - cho phép module khác import =====
     exports client;
     exports controller;
     exports model;
@@ -20,5 +25,7 @@ module Online_auction_system {
     exports model.factory;
     exports model.manager;
     exports protocol;
+    exports protocol.requests;
+    exports protocol.responses;
     exports server;
 }
