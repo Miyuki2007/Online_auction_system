@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane minWidth="900.0" minHeight="600.0" prefHeight="780.0" prefWidth="1200.0"  style="-fx-background-color: #eef2f7;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.seller.MyAuctionsController">
+
+    <!-- ===== SIDEBAR ===== -->
+    <left>
+        <VBox prefWidth="240.0" spacing="0" style="-fx-background-color: #1a1a2e;">
+
+            <!-- Logo / Tiêu đề sidebar -->
+            <VBox alignment="CENTER" spacing="6" style="-fx-padding: 24 16; -fx-background-color: #0f3460;">
+                <Label style="-fx-text-fill: #f9c74f;" text="⚖">
+                    <font><Font size="51.0" /></font>
+                </Label>
+                <Label style="-fx-text-fill: #b8b8d4;" text="ROLE: SELLER">
+                    <font><Font size="13.0" /></font>
+                </Label>
+            </VBox>
+
+            <!-- Thông tin user -->
+            <VBox spacing="4" style="-fx-padding: 16 20; -fx-background-color: #16213e;">
+                <Label style="-fx-text-fill: #b8b8d4;" text="Xin chào,">
+                    <font><Font size="11.0" /></font>
+                </Label>
+                <Label fx:id="lblUser" style="-fx-text-fill: white;" text="Seller Name">
+                    <font><Font name="System Bold" size="14.0" /></font>
+                </Label>
+            </VBox>
+
+            <!-- Menu items -->
+            <VBox spacing="2" style="-fx-padding: 14 0;">
+                <Button fx:id="btnHome" alignment="CENTER_LEFT" maxWidth="Infinity" onAction="#handleHome" style="-fx-background-color: transparent; -fx-text-fill: #b8b8d4; -fx-font-size: 13; -fx-padding: 12 24; -fx-cursor: hand; -fx-background-radius: 0;" text="🏠   Trang chủ" />
+
+                <!-- Highlight nút "Phiên của tôi" vì đang ở trang này -->
+                <Button fx:id="btnMyAuctions" alignment="CENTER_LEFT" maxWidth="Infinity" style="-fx-background-color: #0f3460; -fx-text-fill: white; -fx-font-size: 13; -fx-font-weight: bold; -fx-padding: 12 24; -fx-cursor: hand; -fx-background-radius: 0; -fx-border-color: #f9c74f; -fx-border-width: 0 0 0 4;" text="📋   Phiên đấu giá của tôi" />
+
+                <Button fx:id="btnCreate" alignment="CENTER_LEFT" maxWidth="Infinity" onAction="#handleCreate" style="-fx-background-color: transparent; -fx-text-fill: #b8b8d4; -fx-font-size: 13; -fx-padding: 12 24; -fx-cursor: hand; -fx-background-radius: 0;" text="➕   Tạo phiên đấu giá" />
+
+                <Button fx:id="btnAccount" alignment="CENTER_LEFT" maxWidth="Infinity" onAction="#handleAccount" style="-fx-background-color: transparent; -fx-text-fill: #b8b8d4; -fx-font-size: 13; -fx-padding: 12 24; -fx-cursor: hand; -fx-background-radius: 0;" text="👤   Tài khoản" />
+
+                <Button fx:id="btnSupport" alignment="CENTER_LEFT" maxWidth="Infinity" onAction="#handleSupport" style="-fx-background-color: transparent; -fx-text-fill: #b8b8d4; -fx-font-size: 13; -fx-padding: 12 24; -fx-cursor: hand; -fx-background-radius: 0;" text="❓   Hỗ trợ" />
+            </VBox>
+
+            <!-- Spacer -->
+            <Region VBox.vgrow="ALWAYS" />
+
+            <!-- Đăng xuất -->
+            <VBox style="-fx-padding: 14 0;">
+                <Separator style="-fx-padding: 0 20;" />
+                <Button fx:id="btnLogout" alignment="CENTER_LEFT" maxWidth="Infinity" onAction="#handleLogout" style="-fx-background-color: transparent; -fx-text-fill: #e74c3c; -fx-font-size: 13; -fx-padding: 12 24; -fx-cursor: hand; -fx-background-radius: 0;" text="🚪   Đăng xuất" />
+            </VBox>
+        </VBox>
+    </left>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <center>
+        <VBox spacing="0">
+
+            <!-- Top bar -->
+            <HBox alignment="CENTER_LEFT" spacing="12" style="-fx-background-color: white; -fx-padding: 18 30; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0;">
+                <Label style="-fx-text-fill: #1a1a2e;" text="HỆ THỐNG ĐẤU GIÁ TRỰC TUYẾN">
+                    <font><Font name="System Bold" size="20.0" /></font>
+                </Label>
+                <Region HBox.hgrow="ALWAYS" />
+                <Label fx:id="lblStats" style="-fx-text-fill: #888;" text="Tổng: 0 | Đang chạy: 0 | Đã kết thúc: 0">
+                    <font><Font size="12.0" /></font>
+                </Label>
+            </HBox>
+
+            <!-- Content area -->
+            <VBox spacing="0" VBox.vgrow="ALWAYS">
+                <padding>
+                    <Insets bottom="20" left="30" right="30" top="20" />
+                </padding>
+
+                <!-- Toolbar: Tìm kiếm + Filter + Refresh + Tạo mới -->
+                <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-padding: 14; -fx-border-color: #e0e0e0; -fx-border-width: 1 1 0 1; -fx-background-radius: 8 8 0 0; -fx-border-radius: 8 8 0 0;">
+
+                    <Label style="-fx-font-size: 16;" text="🔍" />
+                    <TextField fx:id="txtSearch" prefHeight="34.0" prefWidth="280.0" promptText="Tìm theo tên sản phẩm..." />
+
+                    <Label style="-fx-text-fill: #555;" text="Trạng thái:">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                    <ComboBox fx:id="cmbStatusFilter" prefHeight="34.0" prefWidth="140.0" />
+
+                    <Region HBox.hgrow="ALWAYS" />
+
+                    <Button fx:id="btnRefresh" onAction="#handleRefresh" prefHeight="34.0" style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 6 14;" text="🔄 Làm mới" />
+
+                    <Button fx:id="btnCreateNew" onAction="#handleCreate" prefHeight="34.0" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-cursor: hand; -fx-font-weight: bold; -fx-padding: 6 14;" text="➕ Đăng sản phẩm mới" />
+                </HBox>
+
+                <!-- Table -->
+                <TableView fx:id="tblAuctions" style="-fx-border-color: #e0e0e0; -fx-border-width: 0 1 0 1;" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colImage" prefWidth="80.0" text="Ảnh" />
+                        <TableColumn fx:id="colItemName" prefWidth="180.0" text="Tên sản phẩm" />
+                        <TableColumn fx:id="colItemType" prefWidth="100.0" text="Loại" />
+                        <TableColumn fx:id="colStartingPrice" prefWidth="120.0" text="Giá khởi điểm" />
+                        <TableColumn fx:id="colCurrentPrice" prefWidth="120.0" text="Giá hiện tại" />
+                        <TableColumn fx:id="colBidCount" prefWidth="70.0" text="Số bid" />
+                        <TableColumn fx:id="colTimeRemaining" prefWidth="100.0" text="Còn lại" />
+                        <TableColumn fx:id="colState" prefWidth="110.0" text="Trạng thái" />
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                    </columnResizePolicy>
+                </TableView>
+
+                <!-- Footer: Action buttons -->
+                <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: white; -fx-padding: 14; -fx-border-color: #e0e0e0; -fx-border-width: 0 1 1 1; -fx-background-radius: 0 0 8 8; -fx-border-radius: 0 0 8 8;">
+
+                    <Label fx:id="lblSelectedInfo" style="-fx-text-fill: #888;" text="Chưa chọn phiên nào">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+
+                    <Region HBox.hgrow="ALWAYS" />
+
+                    <Button fx:id="btnViewDetail" disable="true" onAction="#handleViewDetail" prefHeight="34.0" style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 6 14;" text="👁 Xem chi tiết" />
+
+                    <Button fx:id="btnCancel" disable="true" onAction="#handleCancel" prefHeight="34.0" style="-fx-background-color: #e67e22; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 6 14;" text="❌ Hủy phiên" />
+                </HBox>
+
+                <!-- Message -->
+                <Label fx:id="lblMessage" style="-fx-padding: 8 0 0 0;" text="" wrapText="true">
+                    <font><Font size="12.0" /></font>
+                </Label>
+
+            </VBox>
+        </VBox>
+    </center>
+
+</BorderPane>
