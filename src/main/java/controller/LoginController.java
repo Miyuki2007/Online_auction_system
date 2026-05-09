@@ -62,19 +62,29 @@ public class LoginController {
                 client.connect();
             }
 
-            // ✅ Type-safe: dùng class con LoginRequest
+            // Type-safe: dùng class con LoginRequest
             LoginRequest req = new LoginRequest(username, password);
             Response res = client.sendRequest(req);
 
             if (res.isOk()) {
-                // ✅ Type-safe: ép kiểu data
+                // Type-safe: ép kiểu data
                 SuccessResponse success = (SuccessResponse) res;
                 User user = success.getDataAs(User.class);
-
                 Session.getInstance().setLoggedInUser(user);
-
+                String fxml;
+                String title;
+                switch(user.getRole()){
+                    case "SELLER":
+                        fxml = "seller/my-auction.fxml";
+                        title = "Phiên đấu giá của tôi";
+                        break;
+                    default:
+                        showError("Role không hỗ trợ: " + user.getRole());
+                        return;
+                }
                 showAlert(Alert.AlertType.INFORMATION, "Thành công",
                         "Đăng nhập thành công! Xin chào, " + user.getUsername() + ".");
+                SceneManager.getInstance().switchScene(fxml,title);
 
             } else {
                 lblError.setText(res.getMessage());
@@ -86,16 +96,7 @@ public class LoginController {
 
     @FXML
     void handleGoToRegister() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/register.fxml"));
-            Parent root = loader.load();
-
-            Stage stage = (Stage) btnLogin.getScene().getWindow();
-            stage.setTitle("Đăng ký - Hệ thống đấu giá");
-            stage.setScene(new Scene(root, 800, 600));
-        } catch (Exception e) {
-            showError("Không thể mở trang đăng ký: " + e.getMessage());
-        }
+        SceneManager.getInstance().switchScene("register.fxml","Đăng ký - Hệ thống đấu giá");
     }
 
     private void showError(String message) {
