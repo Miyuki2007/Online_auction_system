@@ -6,6 +6,7 @@ public abstract class Item extends Entity {
     private String description;
     private double startingPrice;
     private double currentPrice;
+    private byte[] imageData;
 
     public Item(String id, String name, String description, double startingPrice) {
         super(id);
@@ -14,7 +15,10 @@ public abstract class Item extends Entity {
         setStartingPrice(startingPrice);
         this.currentPrice = startingPrice;
     }
-
+    public Item(String id, String name, String description, double startingPrice, byte[] imageData) {
+        this(id, name, description, startingPrice);
+        this.imageData = imageData;
+    }
     // --- GETTERS ---
     public String getName() { return name; }
     public String getDescription() { return description; }
@@ -48,6 +52,15 @@ public abstract class Item extends Entity {
             throw new IllegalArgumentException("Giá mới phải cao hơn hoặc bằng giá hiện tại.");
         }
         this.currentPrice = currentPrice;
+    }
+    public byte[] getImageData() {
+        return imageData;
+    }
+    public void setImageData(byte[] imageData) {
+        this.imageData = imageData;
+    }
+    public boolean hasImage() {
+        return imageData != null && imageData.length > 0;
     }
 
     @Override
