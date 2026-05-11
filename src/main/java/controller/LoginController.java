@@ -78,6 +78,10 @@ public class LoginController {
                         fxml = "seller/my-auction.fxml";
                         title = "Phiên đấu giá của tôi";
                         break;
+                    case "BIDDER":
+                        fxml = "bidder/auction-list.fxml";
+                        title = "Tham gia đấu giá";
+                        break;
                     default:
                         showError("Role không hỗ trợ: " + user.getRole());
                         return;
