@@ -169,7 +169,7 @@ public class ClientHandler implements Runnable {
                 req.isAntiSnipeEnabled() ? 30 : 0,
                 req.isAntiSnipeEnabled() ? 60 : 0
         );
-
+        server.broadcastToAll(new NotificationResponse(NotificationResponse.NotificationType.AUCTION_CREATED,"Có phiên đấu giá mới",auction));
 
         return new SuccessResponse("Tạo phiên đấu giá thành công.", auction);
     }
