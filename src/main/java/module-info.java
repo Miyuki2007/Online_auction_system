@@ -12,6 +12,7 @@ module Online_auction_system {
     // ===== Mở reflection cho FXMLLoader inject @FXML =====
     opens controller to javafx.fxml;
     opens controller.seller to javafx.fxml;
+    opens controller.bidder to javafx.fxml;
 
     // ===== Exports - cho phép module khác import =====
     exports client;
