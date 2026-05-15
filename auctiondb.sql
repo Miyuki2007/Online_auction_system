@@ -36,7 +36,7 @@ CREATE TABLE Auctions (
     buy_now_price DECIMAL(15, 2),           -- Giá mua ngay (tùy chọn)
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
-    status ENUM('PENDING', 'ACTIVE', 'CLOSED', 'CANCELED') DEFAULT 'PENDING',
+    status ENUM('OPEN', 'RUNNING', 'FINISHED', 'PAID', 'CANCELED') DEFAULT 'OPEN',
     winner_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (seller_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -72,3 +72,10 @@ CREATE TABLE Payments (
 CREATE INDEX idx_auction_status ON Auctions(status);
 CREATE INDEX idx_auction_endtime ON Auctions(end_time);
 CREATE INDEX idx_bids_auction ON Bids(auction_id);
+USE auctiondb;
+
+INSERT INTO Categories (name, description) VALUES
+('ELECTRONICS', 'Đồ điện tử, công nghệ'),
+('VEHICLE', 'Phương tiện giao thông'),
+('ART', 'Các tác phẩm nghệ thuật'),
+('OTHERS', 'Các sản phẩm khác');

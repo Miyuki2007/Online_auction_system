@@ -151,10 +151,34 @@ public class AuctionManager {
     public Auction createAuction(String sellerId, Item item, double startingPrice,
                                  LocalDateTime start, LocalDateTime end,
                                  boolean antiSnipe, long threshold, long extension) {
-        Auction auction = new Auction(sellerId, item, startingPrice, start, end, antiSnipe, threshold, extension);
-        activeAuctions.put(auction.getId(), auction);
-        auction.start();
-        return auction;
+
+        // 1. GỌI DAO ĐỂ LƯU XUỐNG DATABASE TRƯỚC
+        dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+
+        // Tính toán số phút (durationMinutes) từ thời gian start và end
+        long durationMinutes = java.time.Duration.between(start, end).toMinutes();
+
+        // Gọi hàm insertAuction (đã được sửa) của DAO
+        boolean isSaved = auctionDAO.insertAuction(
+                sellerId,
+                item.getClass().getSimpleName().toUpperCase(), // Lấy loại, ví dụ "ELECTRONICS"
+                item.getName(),
+                item.getDescription(),
+                startingPrice,
+                durationMinutes
+        );
+
+        // 2. KIỂM TRA KẾT QUẢ VÀ LƯU VÀO RAM NẾU THÀNH CÔNG
+        if (isSaved) {
+            Auction auction = new Auction(sellerId, item, startingPrice, start, end, antiSnipe, threshold, extension);
+            activeAuctions.put(auction.getId(), auction);
+            auction.start();
+            System.out.println("✅ Đã lưu phiên đấu giá mới vào Database và RAM thành công: " + auction.getId());
+            return auction;
+        } else {
+            // Ném lỗi để Server báo về cho Client biết là tạo thất bại
+            throw new RuntimeException("Lỗi: Không thể lưu phiên đấu giá vào cơ sở dữ liệu MySQL.");
+        }
     }
 
     public List<Auction> getActiveAuctions() {
