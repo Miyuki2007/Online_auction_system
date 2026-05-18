@@ -73,18 +73,12 @@ public class LoginController {
                 Session.getInstance().setLoggedInUser(user);
                 String fxml;
                 String title;
-                switch(user.getRole()){
-                    case "SELLER":
-                        fxml = "seller/my-auction.fxml";
-                        title = "Phiên đấu giá của tôi";
-                        break;
-                    case "BIDDER":
-                        fxml = "bidder/auction-list.fxml";
-                        title = "Tham gia đấu giá";
-                        break;
-                    default:
-                        showError("Role không hỗ trợ: " + user.getRole());
-                        return;
+                if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+                    showError("Tài khoản Admin chưa được hỗ trợ ở giao diện này.");
+                    return;
+                } else {
+                    fxml = "bidder/auction-list.fxml";
+                    title = "Tham gia đấu giá";
                 }
                 showAlert(Alert.AlertType.INFORMATION, "Thành công",
                         "Đăng nhập thành công! Xin chào, " + user.getUsername() + ".");
