@@ -213,6 +213,15 @@ public class Auction implements AuctionSubject,Serializable {
     public List<BidTransaction> getBidHistory(){
         return Collections.unmodifiableList(bidHistory);
     }
+    public void restoreBidHistory(List<BidTransaction> bids) {
+        bidLock.lock();
+        try {
+            bidHistory.clear();
+            bidHistory.addAll(bids);
+        } finally {
+            bidLock.unlock();
+        }
+    }
     public int getBidCount(){ return bidHistory.size();}
     public boolean isActive(){
         return state == AuctionState.RUNNING && LocalDateTime.now().isBefore(endTime);
@@ -260,5 +269,8 @@ public class Auction implements AuctionSubject,Serializable {
         } finally {
             bidLock.unlock();
         }
+    }
+    public void setCurrentHighestBid(double price) {
+        this.currentHighestBid = price;
     }
 }
