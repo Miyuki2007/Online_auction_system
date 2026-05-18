@@ -48,6 +48,14 @@
             <!-- Spacer -->
             <Region VBox.vgrow="ALWAYS" />
 
+            <!-- Toggle sang vai trò Bidder -->
+            <VBox spacing="6" style="-fx-padding: 14 20; -fx-background-color: #16213e;">
+                <Label style="-fx-text-fill: #b8b8d4;" text="🔄 Chuyển đổi vai trò">
+                    <font><Font size="11.0" /></font>
+                </Label>
+                <Button fx:id="btnSwitchRole" maxWidth="Infinity" onAction="#handleSwitchRole" style="-fx-background-color: #f9c74f; -fx-text-fill: #1a1a2e; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8 12; -fx-background-radius: 4;" text="→ Chuyển sang Bidder" />
+            </VBox>
+
             <!-- Đăng xuất -->
             <VBox style="-fx-padding: 14 0;">
                 <Separator style="-fx-padding: 0 20;" />
