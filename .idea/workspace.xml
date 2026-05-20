@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6044e574-5edf-4a26-8b1b-2ad1f654f367" name="Changes" comment="feat (VuNgoc) [AuctionDAO]: add udateAuctionStatus, add getUnfinishedAuctionsFromDB&#10;[database]: add categories&#10;[AuctionManager]: add loadAuctionsFromDatabase&#10;[AuctionSever]: fix start&#10;[Main]: fix main" />
+    <list default="true" id="6044e574-5edf-4a26-8b1b-2ad1f654f367" name="Changes" comment="feat (VuNgoc) [AuctionDAO]: add udateAuctionStatus, add getUnfinishedAuctionsFromDB&#10;[database]: add categories&#10;[AuctionManager]: add loadAuctionsFromDatabase&#10;[AuctionSever]: fix start&#10;[Main]: fix main">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -90,7 +92,7 @@
     ]
   }
 }</component>
-  <component name="RunManager" selected="Application.Main">
+  <component name="RunManager" selected="Application.AuctionServer">
     <configuration name="AuctionServer" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="server.AuctionServer" />
       <module name="Online_auction_system" />
@@ -159,8 +161,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Application.Main" />
         <item itemvalue="Application.AuctionServer" />
+        <item itemvalue="Application.Main" />
         <item itemvalue="Application.TestConnection" />
         <item itemvalue="Database Script.auctiondb.sql" />
         <item itemvalue="Application.TestDAO" />
@@ -200,7 +202,7 @@
       <workItem from="1778564051358" duration="1805000" />
       <workItem from="1778682063758" duration="2220000" />
       <workItem from="1778813544004" duration="2992000" />
-      <workItem from="1779261608341" duration="6844000" />
+      <workItem from="1779261608341" duration="8176000" />
     </task>
     <task id="LOCAL-00001" summary="docs">
       <option name="closed" value="true" />
@@ -322,7 +324,15 @@
       <option name="project" value="LOCAL" />
       <updated>1779268471818</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="feat (VuNgoc) [AuctionDAO]: add udateAuctionStatus, add getUnfinishedAuctionsFromDB&#10;[database]: add categories&#10;[AuctionManager]: add loadAuctionsFromDatabase&#10;[AuctionSever]: fix start&#10;[Main]: fix main">
+      <option name="closed" value="true" />
+      <created>1779268759367</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1779268759367</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
