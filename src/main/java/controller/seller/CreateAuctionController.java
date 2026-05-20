@@ -360,7 +360,11 @@ public class CreateAuctionController {
         alert.initOwner(getWindow());
         alert.showAndWait();
     }
-
+    @FXML
+    void handleSwitchRole() {
+        SceneManager.getInstance().switchScene(
+                "bidder/auction-list.fxml", "Tham gia đấu giá");
+    }
     @FXML
     void handleLogout() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION,

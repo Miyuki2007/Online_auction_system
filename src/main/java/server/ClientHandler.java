@@ -184,6 +184,20 @@ public class ClientHandler implements Runnable {
             return new ErrorResponse("Chỉ chủ phiên mới được cancel.");
         }
         auction.cancel();
+        dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+        int dbAuctionId = auctionDAO.findAuctionIdByTitleAndSeller(
+                auction.getItem().getName(),
+                auction.getSellerId()
+        );
+        if (dbAuctionId > 0) {
+            boolean ok = auctionDAO.updateStatus(dbAuctionId, "CANCELED");
+            if (ok) {
+                System.out.println("✅ Đã hủy auction " + dbAuctionId + " trong DB.");
+            }
+        } else {
+            System.err.println("⚠️ Không tìm thấy auction trong DB để cancel: " + auction.getId());
+        }
+
         return new SuccessResponse("Đã hủy phiên đấu giá.", auction);
     }
 

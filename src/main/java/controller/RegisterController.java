@@ -28,7 +28,6 @@ public class RegisterController {
     @FXML private TextField txtEmail;
     @FXML private PasswordField txtPassword;
     @FXML private PasswordField txtConfirmPassword;
-    @FXML private ComboBox<String> cmbRole;
     @FXML private Button btnRegister;
     @FXML private Label lblError;
     @FXML private Hyperlink linkLogin;
@@ -37,9 +36,6 @@ public class RegisterController {
 
     @FXML
     void initialize() {
-        cmbRole.setItems(FXCollections.observableArrayList("Bidder", "Seller"));
-        cmbRole.getSelectionModel().selectFirst();
-
         client = Session.getInstance().getClient();
         try {
             if (!client.isConnected()) {
@@ -59,7 +55,7 @@ public class RegisterController {
         String email = txtEmail.getText().trim();
         String password = txtPassword.getText();
         String confirmPassword = txtConfirmPassword.getText();
-        String role = cmbRole.getValue();
+        String role = "Bidder";
 
         if (fullName.isEmpty() || username.isEmpty() || email.isEmpty()
                 || password.isEmpty() || confirmPassword.isEmpty()) {
@@ -80,10 +76,6 @@ public class RegisterController {
         }
         if (!password.equals(confirmPassword)) {
             showError("Mật khẩu xác nhận không khớp.");
-            return;
-        }
-        if (role == null) {
-            showError("Vui lòng chọn vai trò.");
             return;
         }
         if (!client.isConnected()) {
