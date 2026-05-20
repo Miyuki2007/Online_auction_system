@@ -72,9 +72,6 @@ public class AuctionListController {
     @FXML private TableColumn<Auction, String> colState;
 
     // ===== Footer =====
-    @FXML private Label lblSelectedInfo;
-    @FXML private Button btnViewDetail;
-    @FXML private Button btnPlaceBid;
     @FXML private Label lblMessage;
 
     // ===== Data =====
@@ -127,9 +124,16 @@ public class AuctionListController {
         // Setup table
         setupTable();
 
-        // Lắng nghe khi user chọn 1 dòng
-        tblAuctions.getSelectionModel().selectedItemProperty()
-                .addListener((obs, oldA, newA) -> updateActionButtons(newA));
+        // Click 1 lần vào row -> chuyển sang trang chi tiết
+        tblAuctions.setRowFactory(tv -> {
+            javafx.scene.control.TableRow<Auction> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (!row.isEmpty() && event.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+                    openAuctionDetail(row.getItem());
+                }
+            });
+            return row;
+        });
 
         // Empty placeholder cho table
         Label emptyLabel = new Label("📭  Hiện chưa có phiên đấu giá nào.\nHãy quay lại sau hoặc thử thay đổi bộ lọc!");
@@ -394,200 +398,51 @@ public class AuctionListController {
         countdownTimer.play();
     }
 
-    // ============================================
-    //   ACTION BUTTONS STATE
-    // ============================================
-    private void updateActionButtons(Auction selected) {
-        if (selected == null) {
-            lblSelectedInfo.setText("Chưa chọn phiên nào");
-            btnViewDetail.setDisable(true);
-            btnPlaceBid.setDisable(true);
-            return;
-        }
-
-        lblSelectedInfo.setText("Đã chọn: " + selected.getItem().getName());
-        btnViewDetail.setDisable(false);
-
-        // Chỉ cho đặt giá nếu phiên đang RUNNING và còn thời gian
-        boolean canBid = selected.getState() == AuctionState.RUNNING
-                && LocalDateTime.now().isBefore(selected.getEndTime());
-
-        // Không cho seller tự đấu giá phiên của mình (phòng trường hợp dùng cùng tài khoản)
-        User user = Session.getInstance().getLoggedInUser();
-        if (user != null && user.getUsername().equals(selected.getSellerId())) {
-            canBid = false;
-        }
-
-        btnPlaceBid.setDisable(!canBid);
-    }
-
     @FXML
     void handleRefresh() {
         loadAuctions();
     }
 
     // ============================================
-    //   VIEW DETAIL
+    //   VIEW DETAIL - chuyển sang trang chi tiết
     // ============================================
+    /**
+     * Mở trang chi tiết cho 1 auction cụ thể.
+     * Lưu auction vào Session để AuctionDetailController đọc.
+     */
+    private void openAuctionDetail(Auction auction) {
+        if (auction == null) return;
+
+        Session.getInstance().setSelectedAuction(auction);
+        stopTimer();
+        SceneManager.getInstance().switchScene(
+                "bidder/auction-detail.fxml",
+                "Chi tiết: " + auction.getItem().getName());
+    }
+
+    /**
+     * Giữ lại method @FXML này để tương thích ngược nếu có FXML cũ
+     * còn reference đến onAction="#handleViewDetail".
+     * Không có lỗi nếu không được gọi.
+     */
     @FXML
     void handleViewDetail() {
         Auction selected = tblAuctions.getSelectionModel().getSelectedItem();
-        if (selected == null) return;
-
-        Alert detail = new Alert(Alert.AlertType.INFORMATION);
-        detail.setTitle("Chi tiết phiên đấu giá");
-        detail.setHeaderText(selected.getItem().getName());
-
-        StringBuilder content = new StringBuilder();
-        content.append("📋 ID: ").append(selected.getId().substring(0, 8)).append("...\n");
-        content.append("📦 Loại: ").append(translateType(
-                selected.getItem().getClass().getSimpleName())).append("\n");
-        content.append("📝 Mô tả: ").append(selected.getItem().getDescription()).append("\n");
-        content.append("👤 Người bán: ").append(selected.getSellerId()).append("\n\n");
-
-        content.append("💰 Giá khởi điểm: ").append(formatMoney(selected.getStartingPrice())).append("\n");
-        content.append("💰 Giá hiện tại: ").append(formatMoney(selected.getCurrentHighestBid())).append("\n");
-        content.append("👥 Số lượt bid: ").append(selected.getBidCount()).append("\n");
-        if (selected.getCurrentWinnerId() != null) {
-            content.append("🏆 Người dẫn đầu: ").append(selected.getCurrentWinnerId()).append("\n");
-        }
-        content.append("\n");
-        content.append("🕐 Bắt đầu: ").append(selected.getStartTime()).append("\n");
-        content.append("🕐 Kết thúc: ").append(selected.getEndTime()).append("\n");
-        content.append("⏱ Còn lại: ").append(formatRemainTime(selected)).append("\n\n");
-        content.append("📊 Trạng thái: ").append(translateState(selected.getState().name())).append("\n");
-        content.append("🛡 Anti-sniping: ").append(
-                selected.isAntiSnipeEnabled() ? "BẬT" : "TẮT");
-
-        detail.setContentText(content.toString());
-        detail.initOwner(getWindow());
-        detail.getDialogPane().setMinWidth(450);
-        detail.showAndWait();
+        if (selected != null) openAuctionDetail(selected);
     }
 
     // ============================================
     //   PLACE BID
     // ============================================
+    /**
+     * Method này giữ lại chỉ để tương thích ngược nếu FXML cũ còn reference
+     * đến onAction="#handlePlaceBid". Việc đặt giá thực sự đã được chuyển
+     * sang AuctionDetailController.handlePlaceBid().
+     */
     @FXML
     void handlePlaceBid() {
         Auction selected = tblAuctions.getSelectionModel().getSelectedItem();
-        if (selected == null) return;
-
-        User user = Session.getInstance().getLoggedInUser();
-        if (user == null) {
-            showMessage("Phiên đăng nhập đã hết hạn", true);
-            return;
-        }
-
-        // Kiểm tra trạng thái lần nữa (phòng race condition)
-        if (selected.getState() != AuctionState.RUNNING) {
-            showMessage("Phiên đấu giá không còn nhận giá thầu", true);
-            return;
-        }
-        if (user.getUsername().equals(selected.getSellerId())) {
-            showMessage("Bạn không thể đấu giá phiên của chính mình", true);
-            return;
-        }
-
-        // Tạo dialog nhập giá
-        double currentPrice = selected.getCurrentHighestBid();
-        double suggestedBid = currentPrice + Math.max(1000, currentPrice * 0.05); // gợi ý +5% hoặc +1000
-
-        TextInputDialog dialog = new TextInputDialog(
-                String.valueOf((long) suggestedBid));
-        dialog.setTitle("Đặt giá");
-        dialog.setHeaderText("Đặt giá cho: " + selected.getItem().getName());
-        dialog.setContentText(String.format(
-                "Giá hiện tại: %s\n" +
-                        "Nhập giá của bạn (phải > %s):",
-                formatMoney(currentPrice), formatMoney(currentPrice)));
-        dialog.initOwner(getWindow());
-        dialog.getDialogPane().setMinWidth(420);
-
-        Optional<String> result = dialog.showAndWait();
-        if (result.isEmpty()) return;
-
-        // Parse giá - chỉ xóa khoảng trắng và dấu phân cách hàng nghìn (dấu phẩy)
-        // KHÔNG xóa dấu chấm thập phân
-        double amount;
-        try {
-            String raw = result.get().trim().replace(",", "").replace(" ", "");
-            amount = Double.parseDouble(raw);
-            if (amount <= currentPrice) {
-                showMessage("Giá đặt phải lớn hơn giá hiện tại " + formatMoney(currentPrice), true);
-                return;
-            }
-        } catch (NumberFormatException e) {
-            showMessage("Giá đặt không hợp lệ. Vui lòng nhập số.", true);
-            return;
-        }
-
-        // Xác nhận
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                String.format(
-                        "Xác nhận đặt giá %s cho phiên \"%s\"?\n\n" +
-                                "Lưu ý: Sau khi đặt giá thành công, bạn không thể rút lại.",
-                        formatMoney(amount), selected.getItem().getName()),
-                ButtonType.YES, ButtonType.NO);
-        confirm.setTitle("Xác nhận đặt giá");
-        confirm.setHeaderText(null);
-        confirm.initOwner(getWindow());
-        confirm.getDialogPane().setMinWidth(450);
-
-        if (confirm.showAndWait().orElse(ButtonType.NO) != ButtonType.YES) {
-            return;
-        }
-
-        // Gửi request lên server
-        final double finalAmount = amount;
-        final String auctionId = selected.getId();
-
-        btnPlaceBid.setDisable(true);
-        btnPlaceBid.setText("⏳ Đang đặt...");
-
-        new Thread(() -> {
-            try {
-                AuctionClient client = Session.getInstance().getClient();
-                if (!client.isConnected()) {
-                    client.connect();
-                }
-
-                PlaceBidRequest req = new PlaceBidRequest(
-                        auctionId, user.getUsername(), finalAmount);
-                Response response = client.sendRequest(req);
-
-                Platform.runLater(() -> {
-                    btnPlaceBid.setText("💰 Đặt giá");
-
-                    if (response == null) {
-                        btnPlaceBid.setDisable(false);
-                        showMessage("Server không phản hồi", true);
-                        return;
-                    }
-
-                    if (response.isOk()) {
-                        SuccessResponse success = (SuccessResponse) response;
-                        BidTransaction bid = success.getDataAs(BidTransaction.class);
-                        showMessage(String.format(
-                                "✅ Đặt giá %s thành công! Bid ID: %s",
-                                formatMoney(bid.getAmount()),
-                                bid.getId().substring(0, 8)), false);
-                        // Reload để cập nhật giá mới
-                        loadAuctions();
-                    } else {
-                        btnPlaceBid.setDisable(false);
-                        showMessage(response.getMessage(), true);
-                    }
-                });
-
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    btnPlaceBid.setDisable(false);
-                    btnPlaceBid.setText("💰 Đặt giá");
-                    showMessage("Lỗi: " + e.getMessage(), true);
-                });
-            }
-        }, "PlaceBid-Worker").start();
+        if (selected != null) openAuctionDetail(selected);
     }
 
     // ============================================
@@ -595,7 +450,8 @@ public class AuctionListController {
     // ============================================
     @FXML
     void handleHome() {
-        showInfo("Trang chủ", "Tính năng đang phát triển");
+        stopTimer();
+        SceneManager.getInstance().switchScene("home.fxml", "Trang chủ - Hệ thống đấu giá");
     }
 
     @FXML
@@ -632,6 +488,12 @@ public class AuctionListController {
         );
         alert.initOwner(getWindow());
         alert.showAndWait();
+    }
+    @FXML
+    void handleSwitchRole() {
+        stopTimer();
+        SceneManager.getInstance().switchScene(
+                "seller/my-auction.fxml", "Phiên đấu giá của tôi");
     }
 
     @FXML

@@ -145,7 +145,6 @@ public class Auction implements AuctionSubject,Serializable {
     //Chuyển trạng thái
     public void start(){
         transitionTo(AuctionState.RUNNING);
-        this.startTime = LocalDateTime.now();
     }
     public void finishAuction(){
         transitionTo(AuctionState.FINISHED);
@@ -219,6 +218,23 @@ public class Auction implements AuctionSubject,Serializable {
     public List<BidTransaction> getBidHistory(){
         return Collections.unmodifiableList(bidHistory);
     }
+    public void restoreBidHistory(List<BidTransaction> bids) {
+        bidLock.lock();
+        try {
+            BidTransaction topBid = null;
+            for (BidTransaction b : bids) {
+                if (topBid == null || b.getAmount() > topBid.getAmount()) {
+                    topBid = b;
+                }
+            }
+            if (topBid != null) {
+                this.currentHighestBid = topBid.getAmount();
+                this.currentWinnerId = topBid.getBidderId();
+            }
+        }finally {
+            bidLock.unlock();
+        }
+    }
     public int getBidCount(){ return bidHistory.size();}
     public boolean isActive(){
         return state == AuctionState.RUNNING && LocalDateTime.now().isBefore(endTime);
@@ -266,5 +282,8 @@ public class Auction implements AuctionSubject,Serializable {
         } finally {
             bidLock.unlock();
         }
+    }
+    public void setCurrentHighestBid(double price) {
+        this.currentHighestBid = price;
     }
 }
