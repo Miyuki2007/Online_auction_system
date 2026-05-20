@@ -17,7 +17,12 @@ public class AuctionServer {
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
     private volatile boolean running = false;
     public void start(){
-        AuctionManager.getInstance();
+        // 1. Khởi tạo Instance của AuctionManager
+        AuctionManager manager = AuctionManager.getInstance();
+
+        // 🌟 BƯỚC QUAN TRỌNG: Khôi phục lại các phiên đấu giá từ DB lên RAM ngay khi bật Server
+        manager.loadAuctionsFromDatabase();
+
         running = true;
         try(ServerSocket serverSocket = new ServerSocket(PORT)){
             System.out.println("Server đang chạy trên port: " + PORT);

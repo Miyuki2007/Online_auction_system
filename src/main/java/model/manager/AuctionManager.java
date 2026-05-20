@@ -145,7 +145,31 @@ public class AuctionManager {
         if (auction == null) {
             throw new IllegalArgumentException("Phiên đấu giá không tồn tại.");
         }
-        return auction.placeBid(bidderId, amount);
+
+        // 1. Đặt giá trên RAM (để kiểm tra logic, anti-snipe, locks...)
+        BidTransaction transaction = auction.placeBid(bidderId, amount);
+
+        // 2. Nếu đặt giá thành công trên RAM, tiến hành ĐỒNG BỘ XUỐNG DATABASE
+        if (transaction != null) {
+            try {
+                int aId = Integer.parseInt(auctionId);
+                int bId = Integer.parseInt(bidderId);
+
+                // Lưu lượt bid vào bảng Bids
+                dao.BidDAO bidDAO = new dao.BidDAO();
+                bidDAO.placeBid(aId, bId, amount);
+
+                // Cập nhật lại giá cao nhất và người thắng hiện tại vào bảng Auctions
+                dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+                auctionDAO.updateCurrentPrice(aId, amount, bId);
+
+                System.out.println("✅ Đã đồng bộ lượt đặt giá của User " + bidderId + " vào DB.");
+            } catch (NumberFormatException e) {
+                System.err.println("❌ Lỗi ép kiểu ID khi lưu lịch sử Bid: " + e.getMessage());
+            }
+        }
+
+        return transaction;
     }
 
     public Auction createAuction(String sellerId, Item item, double startingPrice,
@@ -159,24 +183,27 @@ public class AuctionManager {
         long durationMinutes = java.time.Duration.between(start, end).toMinutes();
 
         // Gọi hàm insertAuction (đã được sửa) của DAO
-        boolean isSaved = auctionDAO.insertAuction(
+        int generatedId = auctionDAO.insertAuction(
                 sellerId,
-                item.getClass().getSimpleName().toUpperCase(), // Lấy loại, ví dụ "ELECTRONICS"
+                item.getClass().getSimpleName().toUpperCase(),
                 item.getName(),
                 item.getDescription(),
                 startingPrice,
                 durationMinutes
         );
 
-        // 2. KIỂM TRA KẾT QUẢ VÀ LƯU VÀO RAM NẾU THÀNH CÔNG
-        if (isSaved) {
-            Auction auction = new Auction(sellerId, item, startingPrice, start, end, antiSnipe, threshold, extension);
+        // 2. Kiểm tra kết quả và đưa vào RAM
+        if (generatedId != -1) {
+            // Khởi tạo Auction bằng ID thực tế từ cơ sở dữ liệu (ép kiểu về String nếu object Auction yêu cầu String ID)
+            String auctionId = String.valueOf(generatedId);
+
+            Auction auction = new Auction(auctionId, sellerId, item, startingPrice, start, end, antiSnipe, threshold, extension);
+
             activeAuctions.put(auction.getId(), auction);
             auction.start();
-            System.out.println("✅ Đã lưu phiên đấu giá mới vào Database và RAM thành công: " + auction.getId());
+            System.out.println("✅ Đã lưu phiên đấu giá vào DB và RAM với ID: " + auction.getId());
             return auction;
         } else {
-            // Ném lỗi để Server báo về cho Client biết là tạo thất bại
             throw new RuntimeException("Lỗi: Không thể lưu phiên đấu giá vào cơ sở dữ liệu MySQL.");
         }
     }
@@ -186,5 +213,44 @@ public class AuctionManager {
     }
     public List<User> getRegisteredUsers() {
         return Collections.unmodifiableList(new ArrayList<>(registeredUsers.values()));
+    }
+    /**
+     * Hàm khôi phục lại các phiên đấu giá từ Database lên RAM khi khởi động lại Server.
+     * Hãy gọi hàm này ngay khi khởi chạy Server (trong hàm main của Server).
+     */
+    public void loadAuctionsFromDatabase() {
+        System.out.println("⏳ Đang khôi phục các phiên đấu giá từ Database...");
+
+        // 🌟 KHAI BÁO BIẾN ĐỂ FIX LỖI DÒNG 239
+        dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+        List<Auction> pendingAuctions = auctionDAO.getUnfinishedAuctionsFromDB();
+
+        LocalDateTime now = LocalDateTime.now();
+        int count = 0;
+
+        // Bắt đầu vòng lặp quét qua từng phiên đấu giá
+        for (Auction auction : pendingAuctions) {
+
+            // Tình huống 1: Phiên ĐÃ HẾT GIỜ trong lúc Server đang tắt
+            if (auction.getEndTime().isBefore(now)) {
+                auction.end(); // Kết thúc trên RAM
+
+                try {
+                    int aId = Integer.parseInt(auction.getId());
+                    auctionDAO.updateAuctionStatus(aId, "FINISHED");
+                    System.out.println("➔ Phiên " + auction.getId() + " đã hết hạn khi server tắt. Đã tự động đóng trong DB.");
+                } catch (NumberFormatException e) {
+                    System.err.println("❌ Lỗi ép kiểu ID khi cập nhật trạng thái: " + auction.getId());
+                }
+            }
+            // Tình huống 2: Phiên VẪN CÒN THỜI GIAN chạy tiếp
+            else {
+                activeAuctions.put(auction.getId(), auction);
+                auction.start(); // Kích hoạt lại luồng hoặc bộ đếm giờ cho phiên này
+                count++;
+            }
+        } // Vòng lặp FOR kết thúc tại đây
+
+        System.out.println("✅ Khôi phục thành công " + count + " phiên đấu giá đang hoạt động lên RAM.");
     }
 }
