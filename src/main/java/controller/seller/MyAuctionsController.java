@@ -447,7 +447,7 @@ public class MyAuctionsController {
     // ============================================
     @FXML
     void handleHome() {
-        showInfo("Trang chủ", "Tính năng đang phát triển");
+        SceneManager.getInstance().switchScene("home.fxml", "Trang chủ");
     }
 
     @FXML
