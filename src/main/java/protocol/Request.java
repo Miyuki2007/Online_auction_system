@@ -10,7 +10,8 @@ public abstract class Request implements Serializable {
         GET_AUCTIONS, GET_AUCTION_DETAIL,
         PLACE_BID,
         CREATE_AUCTION, CANCEL_AUCTION,
-        GET_MY_AUCTIONS
+        GET_MY_AUCTIONS,
+        REGISTER_AUTO_BID
     }
 
     public abstract Type getType();
