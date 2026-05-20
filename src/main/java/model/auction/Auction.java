@@ -28,7 +28,6 @@ public class Auction implements AuctionSubject,Serializable {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-
     // Anti-sniping: Chống đặt giá phút chót
     //ANTI_SNIPE_THRESHOLD_SEC: Đặt giá trong 30 giây cuối của phiên đấu giá
     //ANTI_SNIPE_EXTENSION_SEC: Phiên được gia hạn thêm 60 giây
@@ -57,14 +56,11 @@ public class Auction implements AuctionSubject,Serializable {
     //Observer
     private transient List<AuctionObserver> observers;
 
-    // Thêm Constructor thứ 2 này vào class Auction của bạn
-    public Auction(String id, String sellerID, Item item,
+    public Auction(String sellerID, Item item,
                    double startingPrice, LocalDateTime startTime,
                    LocalDateTime endTime, boolean antiSnipeEnabled,
                    long antiSnipeThresholdSec, long antiSnipeExtensionSec) {
-
-        this.id = id; // 🌟 KHÔNG dùng UUID nữa, gán thẳng ID từ database vào đây
-
+        this.id = UUID.randomUUID().toString();
         this.sellerId = sellerID;
         this.item = item;
         this.startingPrice = startingPrice;
@@ -73,8 +69,6 @@ public class Auction implements AuctionSubject,Serializable {
         this.antiSnipeEnabled = antiSnipeEnabled;
         this.antiSnipeThresholdSec = antiSnipeThresholdSec;
         this.antiSnipeExtensionSec = antiSnipeExtensionSec;
-
-        // Giữ nguyên toàn bộ phần khởi tạo logic an toàn đa luồng của bạn
         this.state = AuctionState.OPEN;
         this.currentHighestBid = startingPrice;
         this.currentWinnerId = null;
@@ -145,6 +139,7 @@ public class Auction implements AuctionSubject,Serializable {
     //Chuyển trạng thái
     public void start(){
         transitionTo(AuctionState.RUNNING);
+        this.startTime = LocalDateTime.now();
     }
     public void finishAuction(){
         transitionTo(AuctionState.FINISHED);
@@ -221,17 +216,9 @@ public class Auction implements AuctionSubject,Serializable {
     public void restoreBidHistory(List<BidTransaction> bids) {
         bidLock.lock();
         try {
-            BidTransaction topBid = null;
-            for (BidTransaction b : bids) {
-                if (topBid == null || b.getAmount() > topBid.getAmount()) {
-                    topBid = b;
-                }
-            }
-            if (topBid != null) {
-                this.currentHighestBid = topBid.getAmount();
-                this.currentWinnerId = topBid.getBidderId();
-            }
-        }finally {
+            bidHistory.clear();
+            bidHistory.addAll(bids);
+        } finally {
             bidLock.unlock();
         }
     }
