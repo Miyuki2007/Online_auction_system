@@ -1,7 +1,6 @@
 package server;
 import model.manager.AuctionManager;
 import protocol.Response;
-import protocol.responses.NotificationResponse;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -10,27 +9,17 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class AuctionServer {
     private static final int PORT = 12345;
     private final List<ClientHandler> connectedClients = new CopyOnWriteArrayList<>();
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private volatile boolean running = false;
     public void start(){
+        // 1. Khởi tạo Instance của AuctionManager
         AuctionManager manager = AuctionManager.getInstance();
         running = true;
-        scheduler.scheduleAtFixedRate(() -> {
-            try {
-                manager.checkAllExpirations();
-            } catch (Exception e) {
-                System.err.println("Lỗi scheduler checkAllExpirations:");
-                e.printStackTrace();
-            }
-        }, 5, 5, TimeUnit.SECONDS);
-        System.out.println("✅ Đã khởi động scheduler kiểm tra auction hết hạn (mỗi 5s).");
         try(ServerSocket serverSocket = new ServerSocket(PORT)){
             System.out.println("Server đang chạy trên port: " + PORT);
             System.out.println("Đang chờ client kết nối...");
@@ -69,7 +58,6 @@ public class AuctionServer {
     }
     public void shutdown(){
         running = false;
-        scheduler.shutdownNow();
         threadPool.shutdown();
         try{
             if (!threadPool.awaitTermination(5,TimeUnit.SECONDS)){

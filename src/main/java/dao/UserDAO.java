@@ -116,4 +116,18 @@ public class UserDAO {
         }
         return null;
     }
+    // Tìm user_id từ username
+    public int findUserIdByUsername(String username) {
+        String sql = "SELECT user_id FROM Users WHERE username = ?";
+        try (java.sql.Connection conn = model.manager.DatabaseConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
 }
