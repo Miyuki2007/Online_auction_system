@@ -77,7 +77,7 @@ public class LoginController {
                     showError("Tài khoản Admin chưa được hỗ trợ ở giao diện này.");
                     return;
                 } else {
-                    fxml = "bidder/auction-list.fxml";
+                    fxml = "home.fxml";
                     title = "Tham gia đấu giá";
                 }
                 showAlert(Alert.AlertType.INFORMATION, "Thành công",

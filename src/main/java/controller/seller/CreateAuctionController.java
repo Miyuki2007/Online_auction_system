@@ -332,8 +332,7 @@ public class CreateAuctionController {
     // ============================================
     @FXML
     void handleHome() {
-        // TODO: chuyển về home/dashboard khi có
-        showInfo("Trang chủ", "Tính năng đang phát triển");
+        SceneManager.getInstance().switchScene("home.fxml", "Trang chủ");
     }
 
     @FXML
