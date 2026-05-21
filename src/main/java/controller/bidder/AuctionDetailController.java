@@ -12,17 +12,22 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.GridPane;
 import javafx.stage.Window;
 import javafx.util.Duration;
+import javafx.util.Pair;
 import model.auction.Auction;
 import model.auction.AuctionState;
 import model.auction.BidTransaction;
+import model.auction.AutoBid;
 import model.user.Bidder;
 import model.user.User;
 import protocol.Response;
 import protocol.requests.GetAuctionDetailRequest;
 import protocol.requests.PlaceBidRequest;
+import protocol.requests.RegisterAutoBidRequest;
 import protocol.responses.SuccessResponse;
+
 
 import java.io.ByteArrayInputStream;
 import java.text.NumberFormat;
@@ -75,6 +80,7 @@ public class AuctionDetailController {
     @FXML private TextField txtBidAmount;
     @FXML private Label lblBidHint;
     @FXML private Button btnPlaceBid;
+    @FXML private Button btnAutoBid;
 
     // ===== Message =====
     @FXML private Label lblMessage;
@@ -243,6 +249,7 @@ public class AuctionDetailController {
 
         // OK
         btnPlaceBid.setDisable(false);
+        btnAutoBid.setDisable(false);
         txtBidAmount.setDisable(false);
         btnPlaceBid.setStyle(
                 "-fx-background-color: #27ae60; -fx-text-fill: white;" +
@@ -375,6 +382,142 @@ public class AuctionDetailController {
             }
         }, "PlaceBid-Worker").start();
     }
+    @FXML
+    void handleAutoBid() {
+        User user = Session.getInstance().getLoggedInUser();
+        if (user == null) {
+            showMessage("Bạn cần đăng nhập để đặt giá tự động.", true);
+            return;
+        }
+        if (auction.getState() != AuctionState.RUNNING) {
+            showMessage("Phiên không nhận giá thầu.", true);
+            return;
+        }
+        if (user.getUsername().equals(auction.getSellerId())) {
+            showMessage("Bạn không thể auto-bid phiên của chính mình.", true);
+            return;
+        }
+
+        // Dialog nhập maxBid + increment
+        Dialog<Pair<Double, Double>> dialog = new Dialog<>();
+        dialog.setTitle("Đặt giá tự động (Auto-Bid)");
+        dialog.setHeaderText("Hệ thống sẽ tự động đặt giá thay bạn,\n" +
+                "chỉ bid vừa đủ để thắng, đến khi đạt mức tối đa.");
+        dialog.initOwner(getWindow());
+
+        // Nội dung dialog
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(12);
+        grid.setStyle("-fx-padding: 15;");
+
+        double currentPrice = auction.getCurrentHighestBid();
+        double suggestedMax = currentPrice * 2;
+        double suggestedInc = Math.max(1000, currentPrice * 0.05);
+
+        Label lblCurrent = new Label("Giá hiện tại: " + formatMoney(currentPrice));
+        lblCurrent.setStyle("-fx-font-weight: bold; -fx-text-fill: #27ae60;");
+
+        TextField txtMax = new TextField(String.valueOf((long) suggestedMax));
+        txtMax.setPromptText("Ví dụ: 5,000,000");
+        txtMax.setPrefWidth(200);
+
+        TextField txtInc = new TextField(String.valueOf((long) suggestedInc));
+        txtInc.setPromptText("Ví dụ: 100,000");
+        txtInc.setPrefWidth(200);
+
+        Label hint = new Label("💡 Hệ thống sẽ bid hộ bạn vừa đủ để vượt người khác,\n" +
+                "chỉ dừng khi vượt mức tối đa.");
+        hint.setStyle("-fx-text-fill: #888; -fx-font-size: 11;");
+        hint.setWrapText(true);
+
+        grid.add(lblCurrent, 0, 0, 2, 1);
+        grid.add(new Label("Giá tối đa (₫):"), 0, 1);
+        grid.add(txtMax, 1, 1);
+        grid.add(new Label("Bước nhảy (₫):"), 0, 2);
+        grid.add(txtInc, 1, 2);
+        grid.add(hint, 0, 3, 2, 1);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().getButtonTypes().addAll(
+                new ButtonType("Đăng ký", ButtonBar.ButtonData.OK_DONE),
+                ButtonType.CANCEL);
+
+        // Convert result
+        dialog.setResultConverter(bt -> {
+            if (bt != null && bt.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+                try {
+                    double max = Double.parseDouble(txtMax.getText().trim().replace(",", ""));
+                    double inc = Double.parseDouble(txtInc.getText().trim().replace(",", ""));
+                    return new Pair<>(max, inc);
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(pair -> {
+            if (pair == null) {
+                showMessage("Vui lòng nhập số hợp lệ.", true);
+                return;
+            }
+            double maxBid = pair.getKey();
+            double increment = pair.getValue();
+
+            if (maxBid <= currentPrice) {
+                showMessage("Giá tối đa phải lớn hơn giá hiện tại " + formatMoney(currentPrice), true);
+                return;
+            }
+            if (increment <= 0) {
+                showMessage("Bước nhảy phải lớn hơn 0", true);
+                return;
+            }
+
+            sendAutoBidRequest(maxBid, increment);
+        });
+    }
+
+    private void sendAutoBidRequest(double maxBid, double increment) {
+        User user = Session.getInstance().getLoggedInUser();
+        btnAutoBid.setDisable(true);
+        btnAutoBid.setText("⏳ Đang đăng ký...");
+
+        new Thread(() -> {
+            try {
+                AuctionClient client = Session.getInstance().getClient();
+                if (!client.isConnected()) client.connect();
+
+                RegisterAutoBidRequest req = new RegisterAutoBidRequest(
+                        auction.getId(), user.getUsername(), maxBid, increment);
+                Response response = client.sendRequest(req);
+
+                Platform.runLater(() -> {
+                    btnAutoBid.setText("🤖  ĐẶT GIÁ TỰ ĐỘNG");
+                    btnAutoBid.setDisable(false);
+
+                    if (response == null) {
+                        showMessage("Server không phản hồi", true);
+                        return;
+                    }
+                    if (response.isOk()) {
+                        showMessage(String.format(
+                                "✅ Đã đăng ký auto-bid! Max: %s, Bước: %s",
+                                formatMoney(maxBid), formatMoney(increment)), false);
+                        refreshAuction();
+                    } else {
+                        showMessage("Đăng ký thất bại: " + response.getMessage(), true);
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    btnAutoBid.setText("🤖  ĐẶT GIÁ TỰ ĐỘNG");
+                    btnAutoBid.setDisable(false);
+                    showMessage("Lỗi: " + e.getMessage(), true);
+                });
+            }
+        }, "AutoBid-Worker").start();
+    }
 
     /**
      * Refresh auction từ server sau khi bid thành công.
@@ -428,7 +571,6 @@ public class AuctionDetailController {
         StringBuilder content = new StringBuilder();
         content.append("👤 Tên đăng nhập: ").append(user.getUsername()).append("\n");
         content.append("📧 Email: ").append(user.getEmail()).append("\n");
-        content.append("🎭 Vai trò: ").append(user.getRole()).append("\n");
         if (user instanceof Bidder bidder) {
             content.append("💰 Số dư: ").append(formatMoney(bidder.getBalance())).append("\n");
             content.append("📜 Số lần đã bid: ").append(bidder.getBidHistory().size());
