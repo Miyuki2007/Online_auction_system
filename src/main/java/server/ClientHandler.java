@@ -1,9 +1,11 @@
 package server;
 
 import model.auction.Auction;
+import model.auction.AutoBid;
 import model.factory.ItemFactory;
 import model.item.Item;
 import model.manager.AuctionManager;
+import model.manager.AutoBidManager;
 import model.user.*;
 import model.auction.BidTransaction;
 import protocol.Request;
@@ -12,6 +14,7 @@ import protocol.requests.*;
 import protocol.responses.ErrorResponse;
 import protocol.responses.NotificationResponse;
 import protocol.responses.SuccessResponse;
+import protocol.requests.RegisterAutoBidRequest;
 
 import java.io.*;
 import java.net.Socket;
@@ -82,7 +85,9 @@ public class ClientHandler implements Runnable {
             if (request instanceof GetMyAuctionRequest req) {
                 return handleGetMyAuctions(req, manager);
             }
-
+            if (request instanceof RegisterAutoBidRequest req) {
+                return handleRegisterAutoBid(req, manager);
+            }
             return new ErrorResponse("Yêu cầu không được hỗ trợ: "
                     + request.getType());
         } catch (Exception e) {
@@ -207,6 +212,16 @@ public class ClientHandler implements Runnable {
                 .filter(a -> a.getSellerId().equals(req.getSellerId()))
                 .toList();
         return new SuccessResponse("Auctions của bạn.", myAuctions);
+    }
+    private Response handleRegisterAutoBid(RegisterAutoBidRequest req, AuctionManager manager){
+        Auction auction = manager.findAuctionById(req.getAuctionId());
+        if (auction == null){
+            return new ErrorResponse("Không tìm thấy phiên đấu giá");
+        }
+        AutoBid autoBid = AutoBidManager.getInstance().register(auction,req.getBidderId(),req.getMaxBid(),req.getIncrement());
+        return new SuccessResponse(
+                String.format("Đã đăng kí auto-bid: max %.2f, bước nhảy %.2f", req.getMaxBid(),req.getIncrement()), autoBid);
+
     }
 
     // ========== UTILITIES ==========
