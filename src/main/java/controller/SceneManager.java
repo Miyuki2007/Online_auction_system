@@ -32,18 +32,22 @@ public class SceneManager {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/" + fxmlFile));
             Parent root = loader.load();
             //Giữ kích thước cửa sổ hiện tại nếu có scene trước
-            double width = primaryStage.getScene()!= null ? primaryStage.getWidth():1200;
-            double height = primaryStage.getScene()!= null ? primaryStage.getHeight():780;
-            Scene scene = new Scene(root,width,height);
-            primaryStage.setTitle(title);
-            primaryStage.setScene(scene);
-            //Cho phép resize tự do
-            primaryStage.setResizable(true);
-            primaryStage.setMinWidth(900);
-            primaryStage.setMinHeight(600);
+            Scene currentScene = primaryStage.getScene();
+            if (currentScene == null){
+                Scene scene = new Scene(root,1200,780);
+                primaryStage.setTitle(title);
+                primaryStage.setScene(scene);
+                //Cho phép resize tự do
+                primaryStage.setResizable(true);
+                primaryStage.setMinWidth(900);
+                primaryStage.setMinHeight(600);
+                primaryStage.centerOnScreen();
+                primaryStage.show();
+            }else{
+                currentScene.setRoot(root);
+                primaryStage.setTitle(title);
+            }
 
-            primaryStage.centerOnScreen();
-            primaryStage.show();
 
         } catch (IOException e) {
             System.err.println("Lỗi: Không thể tải file FXML tại /fxml/" + fxmlFile);
