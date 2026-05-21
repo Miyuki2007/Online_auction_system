@@ -22,15 +22,12 @@ public class DatabaseConnection {
 
     public static Connection getConnection() {
         try {
-            if (connection == null || connection.isClosed()) {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println("✅ Kết nối thành công tới: " + URL);
-            }
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            return DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (ClassNotFoundException | SQLException e) {
             System.err.println("❌ Lỗi kết nối Database: " + e.getMessage());
             e.printStackTrace();
+            return null;
         }
-        return connection;
     }
 }

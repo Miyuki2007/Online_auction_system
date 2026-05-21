@@ -1,4 +1,3 @@
-
 CREATE DATABASE IF NOT EXISTS auctiondb;
 USE auctiondb;
 
@@ -30,13 +29,16 @@ CREATE TABLE Auctions (
     category_id INT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    image_url VARCHAR(255),
+    image_data LONGBLOB,
     starting_price DECIMAL(15, 2) NOT NULL, -- Giá khởi điểm
     current_price DECIMAL(15, 2) NOT NULL,  -- Giá hiện tại (cập nhật liên tục khi có bid)
     buy_now_price DECIMAL(15, 2),           -- Giá mua ngay (tùy chọn)
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
     status ENUM('OPEN', 'RUNNING', 'FINISHED', 'PAID', 'CANCELED') DEFAULT 'OPEN',
+    anti_snipe_enabled BOOLEAN DEFAULT FALSE,
+    anti_snipe_threshold_sec BIGINT DEFAULT 0,
+    anti_snipe_extension_sec BIGINT DEFAULT 0,
     winner_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (seller_id) REFERENCES Users(user_id) ON DELETE CASCADE,
@@ -75,7 +77,7 @@ CREATE INDEX idx_bids_auction ON Bids(auction_id);
 USE auctiondb;
 
 INSERT INTO Categories (name, description) VALUES
-('ELECTRONICS', 'Đồ điện tử, công nghệ'),
-('VEHICLE', 'Phương tiện giao thông'),
-('ART', 'Các tác phẩm nghệ thuật'),
-('OTHERS', 'Các sản phẩm khác');
+    ('ELECTRONICS', 'Đồ điện tử, công nghệ'),
+    ('VEHICLE', 'Phương tiện giao thông'),
+    ('ART', 'Các tác phẩm nghệ thuật'),
+    ('OTHERS', 'Các sản phẩm khác');
