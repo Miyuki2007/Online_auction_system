@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal" created-in="IU-253.31033.145">
+    <data-source name="auctiondb@localhost" uuid="32c5fd73-06b5-4472-8161-b6f8c58b6f68">
+      <database-info product="MySQL" version="8.0.46" jdbc-version="4.2" driver-name="Amazon Web Services (AWS) Advanced JDBC Wrapper" driver-version="Amazon Web Services (AWS) Advanced JDBC Wrapper 3.3.0 ( Revision: 095ec1b6f33b49aaa04d8c06c9e1a95227d24445 )" dbms="MYSQL" exact-version="8.0.46" exact-driver-version="3.3">
+        <extra-name-characters>$</extra-name-characters>
+        <identifier-quote-string>`</identifier-quote-string>
+      </database-info>
+      <case-sensitivity plain-identifiers="lower" quoted-identifiers="lower" />
+      <secret-storage>master_key</secret-storage>
+      <user-name>root</user-name>
+      <schema-mapping />
+    </data-source>
+  </component>
+</project>

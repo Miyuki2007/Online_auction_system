@@ -72,14 +72,6 @@
             </Label>
             <PasswordField fx:id="txtConfirmPassword" prefHeight="34.0" promptText="Nhập lại mật khẩu" />
 
-            <!-- Vai trò -->
-            <Label style="-fx-text-fill: #333333;" text="Vai trò">
-                <font>
-                    <Font name="System Bold" size="12.0" />
-                </font>
-            </Label>
-            <ComboBox fx:id="cmbRole" prefHeight="34.0" prefWidth="310.0" promptText="Chọn vai trò" />
-
             <!-- Thông báo lỗi -->
             <Label fx:id="lblError" style="-fx-text-fill: #e74c3c;" text="" wrapText="true">
                 <font>
