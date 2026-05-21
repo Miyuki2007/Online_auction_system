@@ -46,32 +46,50 @@ import java.util.Locale;
 public class HomeController {
 
     // ===== Sidebar =====
-    @FXML private Label lblUser;
+    @FXML
+    private Label lblUser;
 
     // ===== Top bar =====
-    @FXML private Label lblStats;
+    @FXML
+    private Label lblStats;
 
     // ===== Welcome + cards =====
-    @FXML private Label lblWelcome;
-    @FXML private Label lblBidderStat;
-    @FXML private Label lblSellerStat;
+    @FXML
+    private Label lblWelcome;
+    @FXML
+    private Label lblBidderStat;
+    @FXML
+    private Label lblSellerStat;
 
     // ===== Chart area =====
-    @FXML private ComboBox<Auction> cmbAuctionPicker;
-    @FXML private Button btnRefreshChart;
-    @FXML private VBox boxChartEmpty;
-    @FXML private Label lblChartEmpty;
-    @FXML private LineChart<String, Number> bidChart;
-    @FXML private CategoryAxis xAxis;
-    @FXML private NumberAxis yAxis;
-    @FXML private HBox boxChartStats;
-    @FXML private Label lblChartStart;
-    @FXML private Label lblChartCurrent;
-    @FXML private Label lblChartIncrease;
-    @FXML private Label lblChartBidCount;
+    @FXML
+    private ComboBox<Auction> cmbAuctionPicker;
+    @FXML
+    private Button btnRefreshChart;
+    @FXML
+    private VBox boxChartEmpty;
+    @FXML
+    private Label lblChartEmpty;
+    @FXML
+    private LineChart<String, Number> bidChart;
+    @FXML
+    private CategoryAxis xAxis;
+    @FXML
+    private NumberAxis yAxis;
+    @FXML
+    private HBox boxChartStats;
+    @FXML
+    private Label lblChartStart;
+    @FXML
+    private Label lblChartCurrent;
+    @FXML
+    private Label lblChartIncrease;
+    @FXML
+    private Label lblChartBidCount;
 
     // ===== Message =====
-    @FXML private Label lblMessage;
+    @FXML
+    private Label lblMessage;
 
     // ===== State =====
     private final ObservableList<Auction> allAuctions = FXCollections.observableArrayList();
@@ -105,8 +123,11 @@ public class HomeController {
                 return String.format("%s (%d bid)",
                         a.getItem().getName(), a.getBidCount());
             }
+
             @Override
-            public Auction fromString(String s) { return null; }
+            public Auction fromString(String s) {
+                return null;
+            }
         });
         cmbAuctionPicker.valueProperty().addListener((obs, oldA, newA) -> {
             if (newA != null && newA != selectedChartAuction) {
@@ -293,6 +314,7 @@ public class HomeController {
     // ============================================
     //   REALTIME UPDATE
     // ============================================
+
     /**
      * Đăng ký listener nhận notification BID_UPDATE / AUCTION_CREATED từ server.
      * Khi có bid mới hoặc phiên mới, tự reload danh sách.
@@ -348,12 +370,14 @@ public class HomeController {
     private void handleSupport() {
         showInfo("Liên hệ hỗ trợ: support@auction.local\nGiờ làm việc: 7:00 - 19:00 mỗi ngày");
     }
+
     @FXML
     private void handleSwitchRole() {
         stopTimer();
         SceneManager.getInstance().switchScene(
                 "seller/my-auction.fxml", "Phiên đấu giá của tôi");
     }
+
     @FXML
     private void handleLogout() {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
@@ -392,5 +416,5 @@ public class HomeController {
         alert.setContentText(msg);
         alert.showAndWait();
     }
-
+}
 
