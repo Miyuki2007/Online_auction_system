@@ -88,6 +88,18 @@ public class ClientHandler implements Runnable {
             if (request instanceof RegisterAutoBidRequest req) {
                 return handleRegisterAutoBid(req, manager);
             }
+            if (request instanceof AdminGetAllUsersRequest req){
+                return handleAdminGetAllUsers(req);
+            }
+            if (request instanceof AdminSetUserActiveRequest req){
+                return handleAdminSetUserActive(req);
+            }
+            if (request instanceof AdminForceCancelAuctionRequest req){
+                return handleAdminForceCancelAuction(req,manager);
+            }
+            if (request instanceof AdminGetStatsRequest req){
+                return handleAdminGetStats(req);
+            }
             return new ErrorResponse("Yêu cầu không được hỗ trợ: "
                     + request.getType());
         } catch (Exception e) {
@@ -116,6 +128,8 @@ public class ClientHandler implements Runnable {
                 user = new Seller(req.getUsername(), req.getPassword(),
                         req.getEmail(), req.getFullName());
                 break;
+            case "ADMIN":
+                return new ErrorResponse("Không thể đăng kí tài khoản Admin qua form." + "Vui lòng liên hệ quản trị viên hệ thống.");
             default:
                 return new ErrorResponse("Role không hợp lệ: " + req.getRole());
         }
@@ -223,7 +237,96 @@ public class ClientHandler implements Runnable {
                 String.format("Đã đăng kí auto-bid: max %.2f, bước nhảy %.2f", req.getMaxBid(),req.getIncrement()), autoBid);
 
     }
+    private boolean verifyAdmin(String username){
+        if (username==null || username.isBlank()) return false;
+        dao.UserDAO userDAO = new dao.UserDAO();
+        model.user.User u = userDAO.findByUsername(username);
+        return u instanceof model.user.Admin;
+    }
+    private Response handleAdminGetAllUsers (AdminGetAllUsersRequest req){
+        if (!verifyAdmin(req.getAdminUsername())){
+            return new ErrorResponse("Bạn không có quyền truy cập chức năng này.");
+        }
+        dao.UserDAO userDao = new dao.UserDAO();
+        java.util.List<dao.UserSummary> users = userDao.getAllUsers();
+        return new SuccessResponse("Danh sách user.", new java.util.ArrayList<>(users));
+    }
+    private Response handleAdminSetUserActive (AdminSetUserActiveRequest req){
+        if (!verifyAdmin(req.getAdminUsername())){
+            return new ErrorResponse("Bạn không có quyền truy cập chức năng này.");
+        }
+        dao.UserDAO userDao = new dao.UserDAO();
+        boolean ok = userDao.setActive(req.getTargetUserId(),req.isActive());
+        if (!ok){
+            return new ErrorResponse("Không thể cập nhập trạng thái user. " +
+                    "Có thể user không tồn tại");
+        }
+        String action = req.isActive() ? "Mở khóa" : "Khóa";
+        return new SuccessResponse(action + " user thành công.", req.getTargetUserId());
+    }
+    private Response handleAdminForceCancelAuction(AdminForceCancelAuctionRequest req, AuctionManager manager){
+        if (!verifyAdmin(req.getAdminUsername())){
+            return new ErrorResponse("Bạn không có quyền truy cập chức năng này.");
+        }
+        Auction auction = manager.findAuctionById(req.getAuctionId());
+        if (auction == null){
+            return new ErrorResponse("Không tìm thấy phiên đấu giá nào.");
+        }
+        if (auction.isEnded()){
+            return new ErrorResponse("Phiên đấu giá đã kết thúc, không thể hủy.");
+        }
+        try{
+            auction.cancel();
+        } catch(Exception e){
+            return new ErrorResponse("Không thể hủy phiên: " + e.getMessage());
+        }
+        dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+        int dbAuctionId = auctionDAO.findAuctionIdByTitleAndSeller(
+                auction.getItem().getName(),auction.getSellerId()
+        );
+        if (dbAuctionId>0){
+            auctionDAO.updateStatus(dbAuctionId,"CANCELED");
+        }
+        server.broadcastToAuction(req.getAuctionId(),
+                new NotificationResponse(
+                        NotificationResponse.NotificationType.STATE_CHANGED,
+                        "Phiên đấu giá đã bị Admin hủy. Lí do: " +
+                                (req.getReason()==null || req.getReason().isBlank()
+                                ? "không có" : req.getReason()), auction.getState()));
+        System.out.println("⚠️  Admin " + req.getAdminUsername() +
+                " đã dừng auction " + req.getAuctionId());
+        return new SuccessResponse("Đã hủy phiên đấu giá.", auction);
+    }
+    private Response handleAdminGetStats(AdminGetStatsRequest req){
+        if (!verifyAdmin(req.getAdminUsername())){
+            return new ErrorResponse("Bạn không có quyền truy cập chức năng này.");
+        }
+        dao.UserDAO userDao = new dao.UserDAO();
+        dao.AuctionDAO auctionDao = new dao.AuctionDAO();
 
+        java.util.List<dao.UserSummary> allUsers = userDao.getAllUsers();
+        int totalUsers = allUsers.size();
+        int bidders = 0, sellers = 0, active = 0, locked = 0;
+        for (dao.UserSummary u : allUsers){
+            if ("BIDDER".equalsIgnoreCase(u.getRole())) bidders++;
+            else if("SELLER".equalsIgnoreCase(u.getRole())) sellers++;
+            if (u.isActive()) active++;
+            else locked++;
+        }
+
+        java.util.Map<String,Integer> auctionCounts = auctionDao.countAuctionsByStatus();
+        int running = auctionCounts.getOrDefault("RUNNING",0);
+        int finished = auctionCounts.getOrDefault("FINISHED",0);
+        int canceled = auctionCounts.getOrDefault("CANCELED",0);
+        int paid = auctionCounts.getOrDefault("PAID",0);
+        int open = auctionCounts.getOrDefault("OPEN",0);
+        int totalAuctions = running + finished + canceled + paid + open;
+        double[] volume = auctionDao.sumBidVolumeAndCount();
+        dao.AdminStats stats = new dao.AdminStats(
+                totalUsers,bidders,sellers,active,locked,
+                totalAuctions,running,finished,canceled,paid,volume[0],(int) volume[1]);
+        return new SuccessResponse("Thống kê hệ thống. ", stats);
+    }
     // ========== UTILITIES ==========
 
     public void sendResponse(Response response) {
