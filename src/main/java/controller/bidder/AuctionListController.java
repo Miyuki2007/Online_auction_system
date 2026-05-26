@@ -33,12 +33,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-
-/**
- * Controller cho màn hình danh sách phiên đấu giá dành cho Bidder.
- * Bidder có thể: xem danh sách, lọc theo tên/loại/trạng thái,
- * xem chi tiết và đặt giá (place bid).
- */
 public class AuctionListController {
 
     // ===== Sidebar =====
@@ -466,7 +460,6 @@ public class AuctionListController {
         StringBuilder content = new StringBuilder();
         content.append("👤 Tên đăng nhập: ").append(user.getUsername()).append("\n");
         content.append("📧 Email: ").append(user.getEmail()).append("\n");
-        content.append("🎭 Vai trò: ").append(user.getRole()).append("\n");
         if (user instanceof Bidder bidder) {
             content.append("💰 Số dư: ").append(formatMoney(bidder.getBalance())).append("\n");
             content.append("📜 Số lần đã bid: ").append(bidder.getBidHistory().size());
