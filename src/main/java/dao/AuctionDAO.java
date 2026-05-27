@@ -215,7 +215,6 @@ public class AuctionDAO {
             e.printStackTrace();
         }
         return result;
-
     }
 
 
