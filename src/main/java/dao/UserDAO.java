@@ -61,7 +61,7 @@ public class UserDAO {
     }
     public model.user.User authenticate(String username, String password) {
         // 1. Câu lệnh SQL lấy đầy đủ thông tin để khởi tạo Object User
-        String sql = "SELECT * FROM Users WHERE username = ? AND password_hash = ?";
+        String sql = "SELECT * FROM Users WHERE username = ? AND password_hash = ? AND is_active = TRUE";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -82,6 +82,9 @@ public class UserDAO {
                         return new model.user.Bidder(username, password, email, fullName);
                     } else if ("SELLER".equalsIgnoreCase(role)) {
                         return new model.user.Seller(username, password, email, fullName);
+                    }
+                    else if ("ADMIN".equalsIgnoreCase(role)) {
+                        return new model.user.Admin(username, password, email, fullName);
                     }
                 }
             }
@@ -106,8 +109,10 @@ public class UserDAO {
 
                     if ("BIDDER".equalsIgnoreCase(role)) {
                         return new model.user.Bidder(username, password, email, fullName);
-                    } else {
+                    } else if ("SELLER".equalsIgnoreCase(role)){
                         return new model.user.Seller(username, password, email, fullName);
+                    } else if ("ADMIN".equalsIgnoreCase(role)){
+                        return new model.user.Admin(username, password, email, fullName);
                     }
                 }
             }
@@ -130,44 +135,59 @@ public class UserDAO {
         }
         return -1;
     }
-    // Lấy toàn bộ danh sách User cho Admin
-    public List<dao.UserSummary> getAllUsers() {
-        List<dao.UserSummary> users = new ArrayList<>();
-        String sql = "SELECT user_id, username, full_name, email, role, is_active FROM Users";
+    // Lấy danh sách tất cả user kèm trạng thái active
+    public java.util.List<dao.UserSummary> getAllUsers(){
+        java.util.List<dao.UserSummary> users = new java.util.ArrayList<>();
+        String sql = "SELECT user_id, username, email, full_name, role, is_active, created_at " + "FROM Users ORDER BY created_at DESC";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                users.add(new dao.UserSummary(
+            while (rs.next()){
+                dao.UserSummary u = new dao.UserSummary(
                         rs.getInt("user_id"),
                         rs.getString("username"),
-                        rs.getString("full_name"),
                         rs.getString("email"),
+                        rs.getString("full_name"),
                         rs.getString("role"),
-                        rs.getBoolean("is_active")
-                ));
+                        rs.getBoolean("is_active"),
+                        rs.getTimestamp("created_at").toLocalDateTime()
+                );
+                users.add(u);
             }
         } catch (SQLException e) {
+            System.err.println("❌ Lỗi getAllUsers:");
             e.printStackTrace();
         }
         return users;
     }
 
-    // Thay đổi trạng thái kích hoạt của User
-    public boolean setActive(int userId, boolean isActive) {
-        String sql = "UPDATE Users SET is_active = ? WHERE user_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setBoolean(1, isActive);
-            ps.setInt(2, userId);
-
+    //Khóa/ mở khóa một user
+    public boolean setActive(int userId, boolean active){
+        String sql = "UPDATE Users SET is_active = ? WHERE user_id = ? AND role <> 'ADMIN'";
+        try(Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql)){
+            ps.setBoolean(1,active);
+            ps.setInt(2,userId);
             return ps.executeUpdate() > 0;
+        } catch (SQLException e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+    // Đếm số lượng user theo role để hiển thị thống kê trên dashboard
+    public java.util.Map<String,Integer> countUsersByRole(){
+        java.util.Map<String,Integer> result = new java.util.HashMap<>();
+        String sql = "SELECT role, COUNT(*) AS cnt FROM Users GROUP BY role";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()){
+                result.put(rs.getString("role"),rs.getInt("cnt"));
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
         }
+        return result;
     }
     // Hàm kiểm tra trùng tên đăng nhập
     public boolean checkUsernameExist(String username) {
