@@ -189,4 +189,33 @@ public class UserDAO {
         }
         return result;
     }
+    // Hàm kiểm tra trùng tên đăng nhập
+    public boolean checkUsernameExist(String username) {
+        String sql = "SELECT 1 FROM Users WHERE username = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next(); // Trả về true nếu đã tồn tại
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // Hàm kiểm tra trùng email
+    public boolean checkEmailExist(String email) {
+        String sql = "SELECT 1 FROM Users WHERE email = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next(); // Trả về true nếu đã tồn tại
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

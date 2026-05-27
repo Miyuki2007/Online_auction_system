@@ -6,6 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="6044e574-5edf-4a26-8b1b-2ad1f654f367" name="Changes" comment="Ngoc: [AdminStats] fix,&#10;[AuctionDao] fix, [database] fix, [UserDao] fix, [UserSummary] fix">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/dao/AuctionDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/dao/AuctionDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/dao/UserDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/dao/UserDAO.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -203,7 +205,7 @@
       <workItem from="1778682063758" duration="2220000" />
       <workItem from="1778813544004" duration="2992000" />
       <workItem from="1779261608341" duration="8512000" />
-      <workItem from="1779895856195" duration="1290000" />
+      <workItem from="1779895856195" duration="2678000" />
     </task>
     <task id="LOCAL-00001" summary="docs">
       <option name="closed" value="true" />
@@ -349,7 +351,15 @@
       <option name="project" value="LOCAL" />
       <updated>1779896507785</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Ngoc: [AdminStats] fix,&#10;[AuctionDao] fix, [database] fix, [UserDao] fix, [UserSummary] fix">
+      <option name="closed" value="true" />
+      <created>1779897844171</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1779897844171</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
