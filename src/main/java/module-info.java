@@ -13,7 +13,7 @@ module Online_auction_system {
     opens controller to javafx.fxml;
     opens controller.seller to javafx.fxml;
     opens controller.bidder to javafx.fxml;
-
+    opens controller.admin to javafx.fxml;
     // ===== Exports - cho phép module khác import =====
     exports client;
     exports controller;
@@ -29,4 +29,5 @@ module Online_auction_system {
     exports protocol.requests;
     exports protocol.responses;
     exports server;
+    exports dao;
 }
