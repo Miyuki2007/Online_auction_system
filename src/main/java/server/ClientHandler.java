@@ -118,6 +118,17 @@ public class ClientHandler implements Runnable {
     }
 
     private Response handleRegister(RegisterRequest req, AuctionManager manager) {
+        dao.UserDAO userDAO = new dao.UserDAO();
+
+        // 1. Kiểm tra trùng tên đăng nhập
+        if (userDAO.checkUsernameExist(req.getUsername())) {
+            return new ErrorResponse("Tên đăng nhập đã tồn tại! Vui lòng chọn tên khác.");
+        }
+
+        // 2. Kiểm tra trùng email
+        if (userDAO.checkEmailExist(req.getEmail())) {
+            return new ErrorResponse("Email này đã được đăng ký! Vui lòng sử dụng email khác.");
+        }
         User user;
         switch (req.getRole().toUpperCase()) {
             case "BIDDER":

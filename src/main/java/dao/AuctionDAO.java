@@ -185,5 +185,39 @@ public class AuctionDAO {
         }
         return false;
     }
+    // Đếm số lượng auction theo trạng thái
+    public java.util.Map<String, Integer> countAuctionsByStatus() {
+        java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+        String sql = "SELECT status, COUNT(*) FROM Auctions GROUP BY status";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                counts.put(rs.getString(1), rs.getInt(2));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return counts;
+    }
+
+    // Tính tổng volume (tổng tiền bid) và tổng số lượt bid
+    public double[] sumBidVolumeAndCount() {
+        String sql = "SELECT SUM(bid_amount), COUNT(*) FROM Bids";
+        double[] result = new double[2]; // Index 0: Volume, Index 1: Count
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            if (rs.next()) {
+                result[0] = rs.getDouble(1);
+                result[1] = rs.getInt(2);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
 
 }

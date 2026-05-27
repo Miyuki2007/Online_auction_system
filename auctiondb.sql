@@ -12,9 +12,12 @@ CREATE TABLE Users (
     phone_number VARCHAR(15),
     address TEXT,
     balance DECIMAL(15, 2) DEFAULT 0.00,
+    is_active BOOLEAN DEFAULT TRUE, -- Cột mới: Quản lý trạng thái khóa/mở khóa của Admin
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 DESCRIBE Users;
+
 -- Bảng Danh mục sản phẩm
 CREATE TABLE Categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,7 +77,6 @@ CREATE TABLE Payments (
 CREATE INDEX idx_auction_status ON Auctions(status);
 CREATE INDEX idx_auction_endtime ON Auctions(end_time);
 CREATE INDEX idx_bids_auction ON Bids(auction_id);
-USE auctiondb;
 
 INSERT INTO Categories (name, description) VALUES
     ('ELECTRONICS', 'Đồ điện tử, công nghệ'),

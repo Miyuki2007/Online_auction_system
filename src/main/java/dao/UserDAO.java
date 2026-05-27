@@ -130,4 +130,72 @@ public class UserDAO {
         }
         return -1;
     }
+    // Lấy toàn bộ danh sách User cho Admin
+    public List<dao.UserSummary> getAllUsers() {
+        List<dao.UserSummary> users = new ArrayList<>();
+        String sql = "SELECT user_id, username, full_name, email, role, is_active FROM Users";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                users.add(new dao.UserSummary(
+                        rs.getInt("user_id"),
+                        rs.getString("username"),
+                        rs.getString("full_name"),
+                        rs.getString("email"),
+                        rs.getString("role"),
+                        rs.getBoolean("is_active")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return users;
+    }
+
+    // Thay đổi trạng thái kích hoạt của User
+    public boolean setActive(int userId, boolean isActive) {
+        String sql = "UPDATE Users SET is_active = ? WHERE user_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setBoolean(1, isActive);
+            ps.setInt(2, userId);
+
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    // Hàm kiểm tra trùng tên đăng nhập
+    public boolean checkUsernameExist(String username) {
+        String sql = "SELECT 1 FROM Users WHERE username = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next(); // Trả về true nếu đã tồn tại
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // Hàm kiểm tra trùng email
+    public boolean checkEmailExist(String email) {
+        String sql = "SELECT 1 FROM Users WHERE email = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next(); // Trả về true nếu đã tồn tại
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
