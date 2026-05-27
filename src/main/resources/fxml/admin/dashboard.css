@@ -1,0 +1,62 @@
+/* =============================================================
+   ADMIN DASHBOARD - CSS
+   =============================================================
+   - Ẩn header (thanh tab phía trên) của TabPane vì điều hướng
+     được làm qua các nút trên sidebar.
+   - Style 3 nút điều hướng trên sidebar: active / inactive / hover.
+   ============================================================= */
+
+
+/* ===== 1. ẨN HEADER CỦA TABPANE ===== */
+/* TabPane có style class "sidebar-driven-tabs" sẽ không hiện thanh tab phía trên */
+.sidebar-driven-tabs .tab-header-area {
+    visibility: hidden;
+    -fx-pref-height: 0;
+    -fx-max-height: 0;
+    -fx-min-height: 0;
+    -fx-padding: 0;
+}
+
+/* Bỏ luôn viền/header background còn sót khi ẩn */
+.sidebar-driven-tabs > .tab-header-area > .headers-region {
+    -fx-pref-height: 0;
+}
+
+.sidebar-driven-tabs > .tab-header-area > .tab-header-background {
+    -fx-pref-height: 0;
+    -fx-background-color: transparent;
+}
+
+
+/* ===== 2. NÚT SIDEBAR - TRẠNG THÁI MẶC ĐỊNH (inactive) ===== */
+.sidebar-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #b8b8d4;
+    -fx-font-size: 13;
+    -fx-padding: 12 24;
+    -fx-cursor: hand;
+    -fx-background-radius: 0;
+    -fx-border-width: 0;
+}
+
+/* Hover - làm sáng nhẹ khi rê chuột */
+.sidebar-btn:hover {
+    -fx-background-color: #16213e;
+    -fx-text-fill: white;
+}
+
+
+/* ===== 3. NÚT SIDEBAR - TRẠNG THÁI ACTIVE ===== */
+/* Mục đang được chọn: nền xanh đậm, text trắng đậm, có thanh vàng bên trái */
+.sidebar-btn-active {
+    -fx-background-color: #0f3460;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-border-color: #f9c74f;
+    -fx-border-width: 0 0 0 4;
+}
+
+.sidebar-btn-active:hover {
+    -fx-background-color: #0f3460;
+    -fx-text-fill: white;
+}
