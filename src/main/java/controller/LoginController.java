@@ -74,8 +74,8 @@ public class LoginController {
                 String fxml;
                 String title;
                 if ("ADMIN".equalsIgnoreCase(user.getRole())) {
-                    showError("Tài khoản Admin chưa được hỗ trợ ở giao diện này.");
-                    return;
+                    fxml = "admin/dashboard.fxml";
+                    title = "Quản trị hệ thống - Admin Dashboars";
                 } else {
                     fxml = "home.fxml";
                     title = "Tham gia đấu giá";
