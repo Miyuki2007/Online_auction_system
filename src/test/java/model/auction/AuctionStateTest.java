@@ -2,7 +2,7 @@ package model.auction;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
-public class AuctionStateTest {
+class AuctionStateTest {
     @Test
     @DisplayName("OPEN có thể chuyển sang RUNNING hoặc CANCELED")
     void open_canTransition(){
