@@ -5,15 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6044e574-5edf-4a26-8b1b-2ad1f654f367" name="Changes" comment="﻿Merge branch 'dev' of https://github.com/Miyuki2007/Online_auction_system into dev&#10;# Please enter a commit message to explain why this merge is necessary,&#10;# especially if it merges an updated upstream into a topic branch.&#10;#&#10;# Lines starting with '#' will be ignored, and an empty message aborts&#10;# the commit.">
+      <change afterPath="$PROJECT_DIR$/src/main/java/dao/AdminStats.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/dao/UserSummary.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_5_13_2026_10_59_PM_[Changes]/shelved.patch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_5_13_2026_10_59_PM__Changes_.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/controller/LoginController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/controller/LoginController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/controller/SceneManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/controller/SceneManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/controller/bidder/AuctionDetailController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/controller/bidder/AuctionDetailController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/controller/bidder/AuctionListController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/controller/bidder/AuctionListController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/controller/seller/CreateAuctionController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/controller/seller/CreateAuctionController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/model/auction/Auction.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/model/auction/Auction.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/auctiondb.sql" beforeDir="false" afterPath="$PROJECT_DIR$/auctiondb.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/dao/AuctionDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/dao/AuctionDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/dao/UserDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/dao/UserDAO.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/server/ClientHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/ClientHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/fxml/bidder/auction-detail.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/fxml/bidder/auction-detail.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/fxml/seller/my-auction.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/fxml/seller/my-auction.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

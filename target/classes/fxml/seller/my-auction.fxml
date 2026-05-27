@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<BorderPane minWidth="900.0" minHeight="600.0" prefHeight="780.0" prefWidth="1200.0"  style="-fx-background-color: #eef2f7;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.seller.MyAuctionsController">
+<BorderPane minHeight="600.0" minWidth="900.0" prefHeight="780.0" prefWidth="1200.0" style="-fx-background-color: #eef2f7;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.seller.MyAuctionsController">
 
     <!-- ===== SIDEBAR ===== -->
     <left>
