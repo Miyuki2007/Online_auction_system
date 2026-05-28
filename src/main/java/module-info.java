@@ -8,6 +8,7 @@ module Online_auction_system {
     requires java.sql;
     requires java.naming;
     requires mysql.connector.j;
+    requires jbcrypt;
 
     // ===== Mở reflection cho FXMLLoader inject @FXML =====
     opens controller to javafx.fxml;
