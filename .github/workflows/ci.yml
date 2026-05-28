@@ -85,7 +85,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      #8. Đóng gói project thành JAR (Chỉ khi test pass)
+      #8. Đóng gói project thành JAR
       - name: Package JAR
         run: mvn -B package -DskipTests
 
