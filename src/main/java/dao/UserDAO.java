@@ -40,6 +40,7 @@ public class UserDAO {
     }
     public boolean registerUser(String username, String password, String email, String fullName, String role) {
         // Câu lệnh SQL để lưu user mới
+        String hashed = org.mindrot.jbcrypt.BCrypt.hashpw(password, org.mindrot.jbcrypt.BCrypt.gensalt(12));
         String sql = "INSERT INTO Users (username, password_hash, email, full_name, role) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -61,33 +62,40 @@ public class UserDAO {
     }
     public model.user.User authenticate(String username, String password) {
         // 1. Câu lệnh SQL lấy đầy đủ thông tin để khởi tạo Object User
-        String sql = "SELECT * FROM Users WHERE username = ? AND password_hash = ? AND is_active = TRUE";
+        String sql = "SELECT password_hash, role, full_name, email FROM Users " +
+                "WHERE username = ? AND is_active = TRUE";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
-            ps.setString(2, password);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    // 2. Lấy thông tin từ các cột trong Database
-                    String role = rs.getString("role");
-                    String fullName = rs.getString("full_name");
-                    String email = rs.getString("email");
-
-                    // 3. Trả về đúng loại đối tượng (Bidder hoặc Seller) dựa trên vai trò
-                    // Giả sử model của bạn có constructor: (username, password, email, fullName)
+                if (!rs.next())  return null;
+                String dbHash = rs.getString("password_hash");
+                //BCrypt.checkpw an toàn với hash bị malformed (trả về false)
+                boolean ok;
+                try {
+                    ok = org.mindrot.jbcrypt.BCrypt.checkpw(password, dbHash);
+                }catch(IllegalArgumentException e) {
+                    ok = false; //// dbHash không phải BCrypt (data cũ plain-text) → fail
+                }
+                if (!ok) return null;
+                // 2. Lấy thông tin từ các cột trong Database
+                String role = rs.getString("role");
+                String fullName = rs.getString("full_name");
+                String email = rs.getString("email");
+                // 3. Trả về đúng loại đối tượng (Bidder hoặc Seller) dựa trên vai trò
+                // Giả sử model của bạn có constructor: (username, null, email, fullName): Không truyền password thật vào object trả về
                     if ("BIDDER".equalsIgnoreCase(role)) {
-                        return new model.user.Bidder(username, password, email, fullName);
+                        return new model.user.Bidder(username, null, email, fullName);
                     } else if ("SELLER".equalsIgnoreCase(role)) {
-                        return new model.user.Seller(username, password, email, fullName);
+                        return new model.user.Seller(username, null, email, fullName);
                     }
                     else if ("ADMIN".equalsIgnoreCase(role)) {
-                        return new model.user.Admin(username, password, email, fullName);
+                        return new model.user.Admin(username, null, email, fullName);
                     }
                 }
-            }
         } catch (SQLException e) {
             System.err.println("❌ Lỗi thực thi truy vấn authenticate:");
             e.printStackTrace();
@@ -108,11 +116,11 @@ public class UserDAO {
                     String password = rs.getString("password_hash");
 
                     if ("BIDDER".equalsIgnoreCase(role)) {
-                        return new model.user.Bidder(username, password, email, fullName);
+                        return new model.user.Bidder(username, null, email, fullName);
                     } else if ("SELLER".equalsIgnoreCase(role)){
-                        return new model.user.Seller(username, password, email, fullName);
+                        return new model.user.Seller(username, null, email, fullName);
                     } else if ("ADMIN".equalsIgnoreCase(role)){
-                        return new model.user.Admin(username, password, email, fullName);
+                        return new model.user.Admin(username, null, email, fullName);
                     }
                 }
             }
