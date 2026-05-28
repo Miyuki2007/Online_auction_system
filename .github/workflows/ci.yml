@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master, dev]
+jobs:
+  build-and-test:
+    name: Build & Test on JDK 21
+    runs-on: ubuntu-latest
+
+    steps:
+      #1: Kiểm tra code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      #2. Càì đặt JDK 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+      #3.Hiển thị version để debug khi cần
+      - name: Show versions
+        run: |
+          java -version
+          mvn -version
+      #4. Compile (bỏ qua test) để fail sớm nếu code không build được
+      - name: Compile project
+        run: mvn -B clean compile
+      #5. Chạy unit test bằng Surefire
+      - name: Run unit tests
+        run: mvn -B test
+      #6. Upload kết quả test (luôn chạy kể cả khi test fail để debug)
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+          retention-days: 7
+          if-no-files-found: ignore
+      #7. Đóng gói project thành JAR (Chỉ khi test pass)
+      - name: Package JAR
+        run: mvn -B package -DskipTests
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: auction-system-jar
+          path: target/*.jar
+          retention-days: 7
+          if-no-files-found: ignore
