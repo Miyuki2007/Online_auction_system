@@ -26,6 +26,7 @@ import protocol.Response;
 import protocol.requests.GetAuctionDetailRequest;
 import protocol.requests.PlaceBidRequest;
 import protocol.requests.RegisterAutoBidRequest;
+import protocol.responses.NotificationResponse;
 import protocol.responses.SuccessResponse;
 
 
@@ -43,47 +44,78 @@ import java.util.Locale;
 public class AuctionDetailController {
 
     // ===== Sidebar =====
-    @FXML private Label lblUser;
-    @FXML private Label lblBalance;
-    @FXML private Button btnHome;
-    @FXML private Button btnAuctionList;
-    @FXML private Button btnAccount;
-    @FXML private Button btnSupport;
-    @FXML private Button btnSwitchRole;
-    @FXML private Button btnLogout;
+    @FXML
+    private Label lblUser;
+    @FXML
+    private Label lblBalance;
+    @FXML
+    private Button btnHome;
+    @FXML
+    private Button btnAuctionList;
+    @FXML
+    private Button btnAccount;
+    @FXML
+    private Button btnSupport;
+    @FXML
+    private Button btnSwitchRole;
+    @FXML
+    private Button btnLogout;
 
     // ===== Top bar =====
-    @FXML private Label lblBreadcrumb;
-    @FXML private Label lblStateBadge;
+    @FXML
+    private Label lblBreadcrumb;
+    @FXML
+    private Label lblStateBadge;
 
     // ===== Ảnh =====
-    @FXML private StackPane imageBox;
-    @FXML private ImageView imageView;
-    @FXML private VBox boxNoImage;
-    @FXML private Label lblAuctionId;
-    @FXML private Label lblAntiSnipe;
+    @FXML
+    private StackPane imageBox;
+    @FXML
+    private ImageView imageView;
+    @FXML
+    private VBox boxNoImage;
+    @FXML
+    private Label lblAuctionId;
+    @FXML
+    private Label lblAntiSnipe;
 
     // ===== Thông tin =====
-    @FXML private Label lblItemName;
-    @FXML private Label lblItemType;
-    @FXML private Label lblSeller;
-    @FXML private Label lblDescription;
-    @FXML private Label lblStartingPrice;
-    @FXML private Label lblBidCount;
-    @FXML private Label lblTopBidder;
-    @FXML private Label lblStartTime;
-    @FXML private Label lblEndTime;
+    @FXML
+    private Label lblItemName;
+    @FXML
+    private Label lblItemType;
+    @FXML
+    private Label lblSeller;
+    @FXML
+    private Label lblDescription;
+    @FXML
+    private Label lblStartingPrice;
+    @FXML
+    private Label lblBidCount;
+    @FXML
+    private Label lblTopBidder;
+    @FXML
+    private Label lblStartTime;
+    @FXML
+    private Label lblEndTime;
 
     // ===== Khu vực đặt giá =====
-    @FXML private Label lblCurrentPrice;
-    @FXML private Label lblRemainTime;
-    @FXML private TextField txtBidAmount;
-    @FXML private Label lblBidHint;
-    @FXML private Button btnPlaceBid;
-    @FXML private Button btnAutoBid;
+    @FXML
+    private Label lblCurrentPrice;
+    @FXML
+    private Label lblRemainTime;
+    @FXML
+    private TextField txtBidAmount;
+    @FXML
+    private Label lblBidHint;
+    @FXML
+    private Button btnPlaceBid;
+    @FXML
+    private Button btnAutoBid;
 
     // ===== Message =====
-    @FXML private Label lblMessage;
+    @FXML
+    private Label lblMessage;
 
     private Auction auction;
     private Timeline countdownTimer;
@@ -120,6 +152,8 @@ public class AuctionDetailController {
 
         renderAuction();
         startCountdownTimer();
+
+        registerNotificationHandler();
 
         // Khi user nhập giá, validate và hiển thị hint ngay
         txtBidAmount.textProperty().addListener((obs, oldV, newV) -> validateBidInput(newV));
@@ -382,6 +416,7 @@ public class AuctionDetailController {
             }
         }, "PlaceBid-Worker").start();
     }
+
     @FXML
     void handleAutoBid() {
         User user = Session.getInstance().getLoggedInUser();
@@ -540,8 +575,34 @@ public class AuctionDetailController {
                         });
                     }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }, "RefreshAuction-Worker").start();
+    }
+
+    // ============================================
+    //   NOTIFICATION HANDLER (real-time update)
+    // ============================================
+    private void registerNotificationHandler() {
+        AuctionClient client = Session.getInstance().getClient();
+        if (client == null) return;
+        client.setOnNotification(notification -> {
+            // xử lí notification đúng kiểu và đúng phiên d
+            if (!(notification instanceof NotificationResponse n)) return;
+            if (auction == null) return;
+            refreshAuction();
+            Platform.runLater(() -> {
+                switch (n.getNotificationType()) {
+                    case BID_UPDATE -> showMessage(
+                            "🔔 Có người vừa đặt giá mới — đang cập nhật...", false);
+                    case TIME_EXTENDED -> showMessage(
+                            "⏱ Phiên đấu giá được gia hạn (anti-snipe).", false);
+                    case STATE_CHANGED -> showMessage(
+                            "ℹ️ Trạng thái phiên đã thay đổi: " + n.getMessage(), false);
+                    default -> { /* không xử lý */ }
+                }
+            });
+        });
     }
 
     // ============================================
