@@ -12,6 +12,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>5.10.2</junit.version>
     </properties>
 
     <dependencies>
@@ -38,8 +39,15 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.10.2</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <!--4. Hash password bằng BCrypt-->
+        <dependency>
+            <groupId>org.mindrot</groupId>
+            <artifactId>jbcrypt</artifactId>
+            <version>0.4</version>
         </dependency>
     </dependencies>
 
@@ -53,6 +61,35 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                </configuration>
+            </plugin>
+
+            <!-- Plugin chạy Unit Test (JUnit 5) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <!-- Bỏ qua các test cần kết nối DB hoặc socket thật khi chạy trên CI -->
+                    <!-- Đặt tên class test có hậu tố *IT.java nếu là integration test -->
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                        <exclude>**/MultiClientTest.java</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Plugin đóng gói JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>client.Main</mainClass>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
 
