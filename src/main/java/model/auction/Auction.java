@@ -215,8 +215,11 @@ public class Auction implements AuctionSubject,Serializable {
     public void restoreBidHistory(List<BidTransaction> bids) {
         bidLock.lock();
         try {
+            this.bidHistory.clear();
+            if (bids == null || bids.isEmpty()){ return;}
             BidTransaction topBid = null;
             for (BidTransaction b : bids) {
+                this.bidHistory.add(b);
                 if (topBid == null || b.getAmount() > topBid.getAmount()) {
                     topBid = b;
                 }
