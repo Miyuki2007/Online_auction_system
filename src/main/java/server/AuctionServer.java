@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 public class AuctionServer {
     private static final int PORT = 12345;
     private final List<ClientHandler> connectedClients = new CopyOnWriteArrayList<>();
-    private final ExecutorService threadPool = Executors.newCachedThreadPool();
+    private final ExecutorService threadPool = Executors.newFixedThreadPool(200);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private volatile boolean running = false;
     public void start(){

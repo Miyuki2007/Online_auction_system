@@ -28,7 +28,12 @@ public class ClientHandler implements Runnable {
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private String watchAuctionId;
-
+    private volatile String loggedInUsername;
+    public String getLoggedInUsername() { return loggedInUsername;}
+    private static final java.util.Map<String,java.util.concurrent.atomic.AtomicInteger> FAILED_ATTEMPTS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<String,Long> LOCKED_UNTIL = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int MAX_ATTEMPTS = 5;
+    private static final long LOCK_DURATION_MS = 5*60_000L; // 5 phút
     public ClientHandler(Socket socket, AuctionServer server) {
         this.socket = socket;
         this.server = server;
@@ -39,7 +44,18 @@ public class ClientHandler implements Runnable {
         try {
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
-
+            in.setObjectInputFilter(java.io.ObjectInputFilter.Config.createFilter(
+                    "maxbytes=10485760;"           // tối đa 10MB (đủ chỗ cho ảnh 5MB + overhead)
+                            + "maxdepth=20;"
+                            + "maxrefs=10000;"
+                            + "java.base/*;"               // các class cơ bản: String, Number, ArrayList, ...
+                            + "java.time.**;"              // LocalDateTime, Duration
+                            + "protocol.**;"
+                            + "model.**;"
+                            + "dao.**;"
+                            + "!*"                         // reject mọi class khác
+            ));
+            socket.setSoTimeout(120_000);
             while (true) {
                 Request request = (Request) in.readObject();
                 Response response = handleRequest(request);
@@ -113,8 +129,34 @@ public class ClientHandler implements Runnable {
     // ========== HANDLERS ==========
 
     private Response handleLogin(LoginRequest req, AuctionManager manager) {
-        User user = manager.authenticateUser(req.getUsername(), req.getPassword());
-        return new SuccessResponse("Đăng nhập thành công.", user);
+       String u = req.getUsername();
+       if (u == null || u.isBlank()){
+           return new ErrorResponse("Tên đăng nhập không hợp lệ");
+       }
+       Long lockEnd = LOCKED_UNTIL.get(u);
+       if (lockEnd != null && lockEnd > System.currentTimeMillis()){
+           long remainSec = (lockEnd - System.currentTimeMillis()) / 1000;
+           return new ErrorResponse("Tài khoản bị tạm khóa do nhập sai nhiều lần. " + "Thử lại sau " + remainSec + "giây.");
+       }
+       try
+       {
+           User user = manager.authenticateUser(u,req.getPassword());
+           FAILED_ATTEMPTS.remove(u);
+           LOCKED_UNTIL.remove(u);
+           if (user!=null){
+               this.loggedInUsername = user.getUsername();
+           }
+           return new SuccessResponse("Đăng nhập thành công.",user);
+       } catch(model.auction.exception.AuthenticationException e){
+           int n = FAILED_ATTEMPTS.computeIfAbsent(u,
+                   k -> new java.util.concurrent.atomic.AtomicInteger()).incrementAndGet();
+           if (n>=MAX_ATTEMPTS){
+               LOCKED_UNTIL.put(u,System.currentTimeMillis() + LOCK_DURATION_MS);
+               FAILED_ATTEMPTS.remove(u);
+               return new ErrorResponse("Đã sai " + MAX_ATTEMPTS + " lần." + "Tài khoản bị khóa 5 phút.");
+           }
+            return new ErrorResponse(e.getMessage() + " (còn " + (MAX_ATTEMPTS-n) + " lần thử)");
+       }
     }
 
     private Response handleRegister(RegisterRequest req, AuctionManager manager) {
@@ -124,7 +166,6 @@ public class ClientHandler implements Runnable {
         if (userDAO.checkUsernameExist(req.getUsername())) {
             return new ErrorResponse("Tên đăng nhập đã tồn tại! Vui lòng chọn tên khác.");
         }
-
         // 2. Kiểm tra trùng email
         if (userDAO.checkEmailExist(req.getEmail())) {
             return new ErrorResponse("Email này đã được đăng ký! Vui lòng sử dụng email khác.");
@@ -164,9 +205,14 @@ public class ClientHandler implements Runnable {
     }
 
     private Response handlePlaceBid(PlaceBidRequest req, AuctionManager manager) {
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập");
+        double amt = req.getAmount();
+        if (Double.isNaN(amt) || Double.isInfinite(amt) || amt<=0 || amt > 1_000_000_000_000.0){
+            return new ErrorResponse("Số tiền không hợp lệ");
+        }
         BidTransaction bid = manager.placeBid(
                 req.getAuctionId(),
-                req.getBidderId(),
+                loggedInUsername,
                 req.getAmount());
 
         server.broadcastToAuction(req.getAuctionId(),
@@ -179,6 +225,23 @@ public class ClientHandler implements Runnable {
 
     private Response handleCreateAuction(CreateAuctionRequest req,
                                          AuctionManager manager) {
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
+        //--- VALIDATE INPUT ---
+        if (req.getStartingPrice()<=0 || Double.isNaN(req.getStartingPrice()) || Double.isInfinite(req.getStartingPrice()) || req.getStartingPrice()>1_000_000_000_000.0 ){
+            return new ErrorResponse("Giá thời điểm không hợp lệ.");
+        }
+        if (req.getDurationMinutes()<=0 || req.getDurationMinutes() > 60L*24*30){
+            return new ErrorResponse("Thời lượng phải từ 1 phút đến 30 ngày");
+        }
+        if (req.getItemName() == null || req.getItemName().isBlank() || req.getItemName().length() > 255){
+            return new ErrorResponse("Tên sản phẩm không hợp lệ");
+        }
+        if (req.getItemDescription() != null && req.getItemDescription().length()>5000){
+            return new ErrorResponse("Mô tả quá dài (Tối đa 5000 ký tự).");
+        }
+        if (req.getImageData() != null && req.getImageData().length>5_000_000){
+            return new ErrorResponse("Ảnh quá lớn (tối đa 5MB)");
+        }
         Item item = ItemFactory.createItem(
                 req.getItemType(),
                 UUID.randomUUID().toString(),
@@ -188,7 +251,12 @@ public class ClientHandler implements Runnable {
                 req.getSpecialAttribute(),
                 req.getImageData()
         );
-
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
+        // Chỉ seller mới được tạo
+        User me = new dao.UserDAO().findByUsername(loggedInUsername);
+        if (!(me instanceof model.user.Seller)){
+            return new ErrorResponse("Chỉ Seller mới được tạo phiên đấu giá.");
+        }
         Auction auction = manager.createAuction(
                 req.getSellerId(),
                 item,
@@ -210,7 +278,8 @@ public class ClientHandler implements Runnable {
         if (auction == null) {
             return new ErrorResponse("Không tìm thấy phiên.");
         }
-        if (!auction.getSellerId().equals(req.getSellerId())) {
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
+        if (!auction.getSellerId().equals(loggedInUsername)) {
             return new ErrorResponse("Chỉ chủ phiên mới được cancel.");
         }
         auction.cancel();
@@ -233,29 +302,34 @@ public class ClientHandler implements Runnable {
 
     private Response handleGetMyAuctions(GetMyAuctionRequest req,
                                          AuctionManager manager) {
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
         List<Auction> myAuctions = manager.getActiveAuctions().stream()
-                .filter(a -> a.getSellerId().equals(req.getSellerId()))
+                .filter(a -> a.getSellerId().equals(loggedInUsername))
                 .toList();
         return new SuccessResponse("Auctions của bạn.", myAuctions);
     }
     private Response handleRegisterAutoBid(RegisterAutoBidRequest req, AuctionManager manager){
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
         Auction auction = manager.findAuctionById(req.getAuctionId());
         if (auction == null){
             return new ErrorResponse("Không tìm thấy phiên đấu giá");
         }
-        AutoBid autoBid = AutoBidManager.getInstance().register(auction,req.getBidderId(),req.getMaxBid(),req.getIncrement());
+        if (loggedInUsername.equals(auction.getSellerId())){
+            return new ErrorResponse("Bạn không thể autobid phiên của chính mình.");
+        }
+        AutoBid autoBid = AutoBidManager.getInstance().register(auction,loggedInUsername,req.getMaxBid(),req.getIncrement());
         return new SuccessResponse(
                 String.format("Đã đăng kí auto-bid: max %.2f, bước nhảy %.2f", req.getMaxBid(),req.getIncrement()), autoBid);
 
     }
-    private boolean verifyAdmin(String username){
-        if (username==null || username.isBlank()) return false;
+    private boolean verifyAdmin(){
+        if (loggedInUsername==null || loggedInUsername.isBlank()) return false;
         dao.UserDAO userDAO = new dao.UserDAO();
-        model.user.User u = userDAO.findByUsername(username);
+        model.user.User u = userDAO.findByUsername(loggedInUsername);
         return u instanceof model.user.Admin;
     }
     private Response handleAdminGetAllUsers (AdminGetAllUsersRequest req){
-        if (!verifyAdmin(req.getAdminUsername())){
+        if (!verifyAdmin()){
             return new ErrorResponse("Bạn không có quyền truy cập chức năng này.");
         }
         dao.UserDAO userDao = new dao.UserDAO();
@@ -263,7 +337,7 @@ public class ClientHandler implements Runnable {
         return new SuccessResponse("Danh sách user.", new java.util.ArrayList<>(users));
     }
     private Response handleAdminSetUserActive (AdminSetUserActiveRequest req){
-        if (!verifyAdmin(req.getAdminUsername())){
+        if (!verifyAdmin()){
             return new ErrorResponse("Bạn không có quyền truy cập chức năng này.");
         }
         dao.UserDAO userDao = new dao.UserDAO();
@@ -276,7 +350,7 @@ public class ClientHandler implements Runnable {
         return new SuccessResponse(action + " user thành công.", req.getTargetUserId());
     }
     private Response handleAdminForceCancelAuction(AdminForceCancelAuctionRequest req, AuctionManager manager){
-        if (!verifyAdmin(req.getAdminUsername())){
+        if (!verifyAdmin()){
             return new ErrorResponse("Bạn không có quyền truy cập chức năng này.");
         }
         Auction auction = manager.findAuctionById(req.getAuctionId());
@@ -309,7 +383,7 @@ public class ClientHandler implements Runnable {
         return new SuccessResponse("Đã hủy phiên đấu giá.", auction);
     }
     private Response handleAdminGetStats(AdminGetStatsRequest req){
-        if (!verifyAdmin(req.getAdminUsername())){
+        if (!verifyAdmin()){
             return new ErrorResponse("Bạn không có quyền truy cập chức năng này.");
         }
         dao.UserDAO userDao = new dao.UserDAO();
