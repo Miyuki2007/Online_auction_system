@@ -20,6 +20,10 @@ public abstract class User extends Entity {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) {this.fullName = fullName;}
     public abstract String getRole();
+    public boolean authenticate(String password){
+        if (this.password == null || password == null) return false;
+        return this.password.equals(password);
+    }
     @Override
     public String getDisplayInfo() {
         return String.format("[%s] %s (%s)", getRole(), fullName, username);
