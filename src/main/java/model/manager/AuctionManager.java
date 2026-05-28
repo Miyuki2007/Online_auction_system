@@ -99,8 +99,13 @@ public class AuctionManager {
     public void registerUser(User user) {
         // 1. Khởi tạo DAO
         UserDAO userDAO = new UserDAO();
-
-        // 2. Thực hiện lưu vào Database
+        //2. Kiểm tra Username đã tồn tại chưa
+        if (registeredUsers.containsKey(user.getUsername())
+                || userDAO.checkUsernameExist(user.getUsername())) {
+            throw new IllegalArgumentException(
+                    "Username '" + user.getUsername() + "' đã tồn tại.");
+        }
+        // 3. Thực hiện lưu vào Database
         boolean isSaved = userDAO.registerUser(
                 user.getUsername(),
                 user.getPassword(),
@@ -110,6 +115,7 @@ public class AuctionManager {
         );
 
         if (isSaved) {
+            registeredUsers.put(user.getUsername(),user);
             System.out.println("Đã lưu user " + user.getUsername() + " vào database thành công.");
         } else {
             throw new RuntimeException("Lỗi: Không thể lưu người dùng vào Database.");
@@ -131,11 +137,15 @@ public class AuctionManager {
 
     public User authenticateUser(String username, String password) {
         UserDAO userDAO = new UserDAO();
+        if (!userDAO.checkUsernameExist(username))
+        {
+            throw new AuthenticationException("Tên đăng nhập không tồn tại.");
+        }
         User user = userDAO.authenticate(username, password); // Sử dụng hàm authenticate mình đã hướng dẫn ở bài trước
 
         if (user == null) {
             // Bạn có thể giữ ném lỗi AuthenticationException như cũ
-            throw new AuthenticationException("Tên đăng nhập hoặc mật khẩu không chính xác.");
+            throw new AuthenticationException("Mật khẩu không chính xác.");
         }
 
 

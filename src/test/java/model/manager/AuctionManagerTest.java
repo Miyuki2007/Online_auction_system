@@ -18,6 +18,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
+import util.TestDatabaseCleaner;
+
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AuctionManagerTest {
     private AuctionManager manager;
@@ -28,12 +30,24 @@ class AuctionManagerTest {
 
     @BeforeEach
     void setUp() throws Exception{
+        TestDatabaseCleaner.cleanAll();
+
         resetSingleton();
         manager = AuctionManager.getInstance();
         seller = new Seller("Seller01","123","seller@gmail.com","NguoiBan");
         bidder1 = new Bidder("Bidder01","abc","bidder1@gmail.com","NguyenVanA");
         bidder2 = new Bidder("Bidder02","def","bidder2@gmail.com","NguyenVanB");
         testItem = new Electronics("item01","Laptop","Gaming laptop",1000.0,"Lenovo");
+    }
+
+    /**
+     * Helper: register seller vào DB để các test createAuction/placeBid có thể
+     * insert auction (vì insertAuction cần seller tồn tại trong bảng Users).
+     */
+    private void ensureSellerRegistered() {
+        if (manager.getUserByUsername(seller.getUsername()) == null) {
+            manager.registerUser(seller);
+        }
     }
     private void resetSingleton() throws Exception{
         Field instance = AuctionManager.class.getDeclaredField("instance");
@@ -152,8 +166,9 @@ class AuctionManagerTest {
     @Order(11)
     @DisplayName("Tạo auction thành công")
     void createAuction_success(){
+        ensureSellerRegistered();
         Auction auction = manager.createAuction(
-                seller.getId(),testItem,1000.0,
+                seller.getUsername(),testItem,1000.0,
                 LocalDateTime.now(),
                 LocalDateTime.now().plusHours(1),
                 false,0,0
@@ -166,8 +181,9 @@ class AuctionManagerTest {
     @Order(12)
     @DisplayName("Tìm auction theo ID - tồn tại")
     void findAuctionById_found(){
+        ensureSellerRegistered();
         Auction auction = manager.createAuction(
-                seller.getId(),testItem,1000.0,
+                seller.getUsername(),testItem,1000.0,
                 LocalDateTime.now(),
                 LocalDateTime.now().plusHours(1),
                 false,0,0
@@ -189,13 +205,15 @@ class AuctionManagerTest {
     @Order(14)
     @DisplayName("Đặt giá qua manager - thành công")
     void placeBid_success(){
+        ensureSellerRegistered();
+        manager.registerUser(bidder1);  // bidder cũng cần trong DB để placeBid lưu được
         Auction auction = manager.createAuction(
-                seller.getId(),testItem,1000.0,
+                seller.getUsername(),testItem,1000.0,
                 LocalDateTime.now(),
                 LocalDateTime.now().plusHours(1),
                 false,0,0
         );
-        BidTransaction bid = manager.placeBid(auction.getId(),bidder1.getId(),1500.0);
+        BidTransaction bid = manager.placeBid(auction.getId(),bidder1.getUsername(),1500.0);
         assertNotNull(bid);
         assertEquals(1500.0,bid.getAmount());
         assertEquals(1500.0,auction.getCurrentHighestBid());
@@ -205,7 +223,7 @@ class AuctionManagerTest {
     @Order(15)
     @DisplayName("Đặt giá vào auction không tồn tại - throw IllegalArgumentException")
     void placeBid_auctionNotExist(){
-        assertThrows(IllegalArgumentException.class,()->manager.placeBid("fakeId",bidder1.getId(),1000.0));
+        assertThrows(IllegalArgumentException.class,()->manager.placeBid("fakeId",bidder1.getUsername(),1000.0));
     }
 
     //==== TEST CONCURRENT ====
@@ -242,7 +260,8 @@ class AuctionManagerTest {
     @Order(18)
     @DisplayName("getActiveAuctions trả về list không thể modify")
     void getActiveAuctions_immutable(){
-        manager.createAuction(seller.getId(),testItem,1000.0,LocalDateTime.now(),
+        ensureSellerRegistered();
+        manager.createAuction(seller.getUsername(),testItem,1000.0,LocalDateTime.now(),
                 LocalDateTime.now().plusHours(1),false,0,0);
         List<Auction> auctions = manager.getActiveAuctions();
         assertThrows(UnsupportedOperationException.class,()->auctions.add(null),"List trả về phải là unmodifiable");
