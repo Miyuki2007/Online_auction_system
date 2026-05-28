@@ -8,7 +8,17 @@ public class DatabaseConnection {
     // Lấy thông tin từ Biến môi trường, nếu không có thì dùng giá trị mặc định (localhost)
     private static final String URL = getEnvOrDefault("DB_URL", "jdbc:mysql://localhost:3306/auctiondb");
     private static final String USER = getEnvOrDefault("DB_USER", "root");
-    private static final String PASSWORD = getEnvOrDefault("DB_PASS", "Hoangngoc07@vb");
+    private static final String PASSWORD = System.getenv("DB_PASS");
+
+    static{
+        if (PASSWORD == null || PASSWORD.isBlank()){
+            throw new RuntimeException(
+                    "Vui lòng set biến môi trường DB_PASS trước khi chạy server.\n" +
+                            "Ví dụ:\n" +
+                            "  Linux/macOS:  export DB_PASS='your_password'\n" +
+                            "  Windows:      set DB_PASS=your_password");
+        }
+    }
 
     private static Connection connection = null;
 
