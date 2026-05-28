@@ -2,7 +2,7 @@ package model.user;
 import model.Entity;
 public abstract class User extends Entity {
     private String username;
-    private String password;
+    private transient String password;
     private String email;
     private String fullName;
     protected User(String username, String password, String email, String fullName) {
@@ -20,10 +20,6 @@ public abstract class User extends Entity {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) {this.fullName = fullName;}
     public abstract String getRole();
-    public boolean authenticate(String inputPassword){
-        return this.password.equals(inputPassword);
-    }
-
     @Override
     public String getDisplayInfo() {
         return String.format("[%s] %s (%s)", getRole(), fullName, username);
