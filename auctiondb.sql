@@ -83,4 +83,6 @@ INSERT INTO Categories (name, description) VALUES
     ('ART', 'Các tác phẩm nghệ thuật'),
     ('OTHERS', 'Các sản phẩm khác');
 INSERT IGNORE INTO Users (username, password_hash, email, full_name, role, is_active)
-VALUES ('admin', 'admin@1234', 'admin@auction.local', 'System Administrator', 'ADMIN', TRUE);
+VALUES ('admin',
+        '$2a$12$M5g9Q5wT.JPxnQpZjV5HXOJrU2YfH6tJqJ1KkPpZZQlBcUjT.YqHK',
+        'admin@auction.local', 'System Administrator', 'ADMIN', TRUE);
