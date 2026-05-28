@@ -5,34 +5,77 @@ on:
     branches: [main, master, dev]
   pull_request:
     branches: [main, master, dev]
+
 jobs:
   build-and-test:
     name: Build & Test on JDK 21
     runs-on: ubuntu-latest
 
+    # MySQL service container - khởi tạo trước khi job chạy
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASS }}
+          MYSQL_DATABASE: auctiondb_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -p${{ secrets.DB_PASS }}"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
-      #1: Kiểm tra code
+      #1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
-      #2. Càì đặt JDK 21
+
+      #2. Cài đặt JDK 21
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-      #3.Hiển thị version để debug khi cần
+
+      #3. Hiển thị version để debug khi cần
       - name: Show versions
         run: |
           java -version
           mvn -version
-      #4. Compile (bỏ qua test) để fail sớm nếu code không build được
+
+      #4. Chờ MySQL sẵn sàng và init schema test
+      - name: Wait for MySQL & init test schema
+        env:
+          MYSQL_PWD: ${{ secrets.DB_PASS }}
+        run: |
+          sudo apt-get install -y mysql-client
+          # Chờ MySQL ready (tối đa 30s)
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root --silent; then
+              echo "MySQL is ready"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 1
+          done
+          # Import schema test
+          mysql -h 127.0.0.1 -P 3306 -u root auctiondb_test < auctiondb_test_schema.sql
+
+      #5. Compile để fail sớm nếu build lỗi
       - name: Compile project
         run: mvn -B clean compile
-      #5. Chạy unit test bằng Surefire
+
+      #6. Chạy unit test với DB test
       - name: Run unit tests
+        env:
+          DB_URL: jdbc:mysql://127.0.0.1:3306/auctiondb_test
+          DB_USER: root
+          DB_PASS: ${{ secrets.DB_PASS }}
         run: mvn -B test
-      #6. Upload kết quả test (luôn chạy kể cả khi test fail để debug)
+
+      #7. Upload kết quả test (luôn chạy kể cả khi test fail để debug)
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -41,7 +84,8 @@ jobs:
           path: target/surefire-reports
           retention-days: 7
           if-no-files-found: ignore
-      #7. Đóng gói project thành JAR (Chỉ khi test pass)
+
+      #8. Đóng gói project thành JAR (Chỉ khi test pass)
       - name: Package JAR
         run: mvn -B package -DskipTests
 
