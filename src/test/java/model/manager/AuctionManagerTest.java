@@ -28,6 +28,19 @@ class AuctionManagerTest {
     private Bidder bidder2;
     private Item testItem;
 
+    /**
+     * Safety check: chỉ cho phép test chạy nếu DB_URL trỏ vào DB test.
+     * Tránh trường hợp test ghi nhầm vào DB production.
+     */
+    @BeforeAll
+    static void verifyTestDatabase() {
+        String url = System.getenv("DB_URL");
+        if (url == null || !url.contains("auctiondb_test")) {
+            throw new IllegalStateException("AuctionManagerTest CHỈ được chạy với database test (auctiondb_test).\n");
+        }
+        System.out.println("✅ Test database verified: " + url);
+    }
+
     @BeforeEach
     void setUp() throws Exception{
         TestDatabaseCleaner.cleanAll();
