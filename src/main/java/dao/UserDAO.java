@@ -47,7 +47,7 @@ public class UserDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
-            ps.setString(2, password); // Lưu ý: thực tế nên dùng BCrypt để mã hóa pass
+            ps.setString(2, hashed); // Đã hash bằng BCrypt ở dòng trên
             ps.setString(3, email);
             ps.setString(4, fullName);
             ps.setString(5, role);
@@ -62,8 +62,8 @@ public class UserDAO {
     }
     public model.user.User authenticate(String username, String password) {
         // 1. Câu lệnh SQL lấy đầy đủ thông tin để khởi tạo Object User
-        String sql = "SELECT password_hash, role, full_name, email FROM Users " +
-                "WHERE username = ? AND is_active = TRUE";
+        String sql = "SELECT password_hash, role, full_name, email, is_active FROM Users " +
+                "WHERE username = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -71,15 +71,30 @@ public class UserDAO {
             ps.setString(1, username);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next())  return null;
+                if (!rs.next()) {
+                    System.err.println("[DEBUG] authenticate: user '" + username + "' không tồn tại trong DB");
+                    return null;}
+                boolean isActive = rs.getBoolean("is_active");
                 String dbHash = rs.getString("password_hash");
+                System.err.println("[DEBUG] authenticate user=" + username
+                        + " is_active=" + isActive
+                        + " hashLen=" + (dbHash == null ? "null" : dbHash.length())
+                        + " hashPrefix=" + (dbHash == null ? "null" : dbHash.substring(0, Math.min(7, dbHash.length()))));
+
+                if (!isActive) {
+                    System.err.println("[DEBUG] authenticate: user '" + username + "' đang bị inactive");
+                    return null;
+                }
+
                 //BCrypt.checkpw an toàn với hash bị malformed (trả về false)
                 boolean ok;
                 try {
                     ok = org.mindrot.jbcrypt.BCrypt.checkpw(password, dbHash);
                 }catch(IllegalArgumentException e) {
+                    System.err.println("[DEBUG] authenticate: BCrypt.checkpw throw: " + e.getMessage());
                     ok = false; //// dbHash không phải BCrypt (data cũ plain-text) → fail
                 }
+                System.err.println("[DEBUG] authenticate: checkpw('" + password + "', hash) = " + ok);
                 if (!ok) return null;
                 // 2. Lấy thông tin từ các cột trong Database
                 String role = rs.getString("role");
@@ -87,15 +102,15 @@ public class UserDAO {
                 String email = rs.getString("email");
                 // 3. Trả về đúng loại đối tượng (Bidder hoặc Seller) dựa trên vai trò
                 // Giả sử model của bạn có constructor: (username, null, email, fullName): Không truyền password thật vào object trả về
-                    if ("BIDDER".equalsIgnoreCase(role)) {
-                        return new model.user.Bidder(username, null, email, fullName);
-                    } else if ("SELLER".equalsIgnoreCase(role)) {
-                        return new model.user.Seller(username, null, email, fullName);
-                    }
-                    else if ("ADMIN".equalsIgnoreCase(role)) {
-                        return new model.user.Admin(username, null, email, fullName);
-                    }
+                if ("BIDDER".equalsIgnoreCase(role)) {
+                    return new model.user.Bidder(username, null, email, fullName);
+                } else if ("SELLER".equalsIgnoreCase(role)) {
+                    return new model.user.Seller(username, null, email, fullName);
                 }
+                else if ("ADMIN".equalsIgnoreCase(role)) {
+                    return new model.user.Admin(username, null, email, fullName);
+                }
+            }
         } catch (SQLException e) {
             System.err.println("❌ Lỗi thực thi truy vấn authenticate:");
             e.printStackTrace();
