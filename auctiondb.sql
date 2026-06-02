@@ -99,5 +99,5 @@ INSERT INTO Categories (name, description) VALUES
     ('OTHERS', 'Các sản phẩm khác');
 INSERT IGNORE INTO Users (username, password_hash, email, full_name, role, is_active)
 VALUES ('admin',
-        '$2a$12$M5g9Q5wT.JPxnQpZjV5HXOJrU2YfH6tJqJ1KkPpZZQlBcUjT.YqHK',
+        '$2a$12$Ue4cJGhYMaAKIfGwpweAA.3wm2c7U15jPAElMlSJz9HA7ZX8K9rvS',
         'admin@auction.local', 'System Administrator', 'ADMIN', TRUE);
