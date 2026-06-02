@@ -23,6 +23,20 @@ public class AutoBid implements  Comparable<AutoBid>, Serializable{
         this.createAt = LocalDateTime.now();
         this.active = true;
     }
+    /** Constructor dùng để restore từ Database (giữ nguyên id, createdAt, active gốc) */
+    public AutoBid(String id, String auctionId, String bidderId,
+                   double maxBid, double increment,
+                   LocalDateTime createAt, boolean active) {
+        if (maxBid<=0) throw new IllegalArgumentException("Giá tối đa phải lớn hơn 0");
+        if (increment<=0) throw new IllegalArgumentException("Bước nhảy phải lớn hơn 0");
+        this.id = id;
+        this.auctionId = auctionId;
+        this.bidderId = bidderId;
+        this.maxBid = maxBid;
+        this.increment = increment;
+        this.createAt = createAt;
+        this.active = active;
+    }
     @Override
     public int compareTo(AutoBid other){
         int cmp = Double.compare(other.maxBid,this.maxBid);

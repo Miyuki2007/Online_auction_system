@@ -1,4 +1,7 @@
 package model.manager;
+import dao.AuctionDAO;
+import dao.AutoBidDAO;
+import dao.UserDAO;
 import model.auction.Auction;
 import model.auction.AutoBid;
 import model.auction.BidTransaction;
@@ -44,6 +47,11 @@ public class AutoBidManager implements AuctionObserver {
             }
         }
         AutoBid autoBid = new AutoBid(auction.getId(),bidderId,maxBid,increment);
+
+        AutoBidDAO autoBidDao = new AutoBidDAO();
+        int dbAuctionId = new AuctionDAO().findAuctionIdByTitleAndSeller(auction.getItem().getName(), auction.getSellerId());
+        int dbBidderId = new UserDAO().findUserIdByUsername(bidderId);
+        autoBidDao.insertAutoBid(autoBid, dbAuctionId, dbBidderId);
         autoBidsByAuction.computeIfAbsent(auction.getId(), k-> Collections.synchronizedList(new ArrayList<>())).add(autoBid);
         //Chỉ đăng kí observer 1 lần cho mỗi auction
         if (observedAuctions.add(auction.getId())){
@@ -64,13 +72,20 @@ public class AutoBidManager implements AuctionObserver {
         }
     }
     @Override
-    public void onAuctionStateChanged (Auction auction){
-        if (auction.isEnded()){
+    public void onAuctionStateChanged(Auction auction) {
+        if (auction.isEnded()) {
             List<AutoBid> bids = autoBidsByAuction.get(auction.getId());
-            if (bids!=null){
-                synchronized (bids){
+            if (bids != null) {
+                synchronized (bids) {
                     bids.forEach(AutoBid::deactivate);
                 }
+            }
+            // ← THÊM: deactivate trong DB theo auction
+            dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+            int dbAuctionId = auctionDAO.findAuctionIdByTitleAndSeller(
+                    auction.getItem().getName(), auction.getSellerId());
+            if (dbAuctionId > 0) {
+                new AutoBidDAO().deactivateAllByAuction(dbAuctionId);
             }
             observedAuctions.remove(auction.getId());
         }
@@ -81,6 +96,7 @@ public class AutoBidManager implements AuctionObserver {
         List<AutoBid> bids = autoBidsByAuction.get(auction.getId());
         if (bids == null || bids.isEmpty()) return;
         double currentPrice = auction.getCurrentHighestBid();
+        AutoBidDAO autoBidDAO = new AutoBidDAO();
         PriorityQueue<AutoBid> queue = new PriorityQueue<>();
         synchronized (bids){
             for (AutoBid ab : bids){
@@ -88,6 +104,7 @@ public class AutoBidManager implements AuctionObserver {
                 if (ab.getBidderId().equals(excludeBidderId)) continue;
                 if (ab.getMaxBid()<= currentPrice){
                     ab.deactivate();
+                    autoBidDAO.deactivateByUuid(ab.getId());
                     continue;
                 }
                 queue.offer(ab);
@@ -105,13 +122,16 @@ public class AutoBidManager implements AuctionObserver {
         }
         if (bidAmount <= currentPrice){
             winner.deactivate();
+            autoBidDAO.deactivateByUuid(winner.getId());
             return;
         }
         try{
-            auction.placeBid(winner.getBidderId(),bidAmount);
+            AuctionManager.getInstance().placeBid(
+                    auction.getId(), winner.getBidderId(), bidAmount);
         } catch (Exception e){
             System.err.println("Auto-bid thất bại: " + e.getMessage());
             winner.deactivate();
+            autoBidDAO.deactivateByUuid(winner.getId());
         }
     }
     public List<AutoBid> getAutoBidsForBidder (String bidderId){
@@ -123,19 +143,34 @@ public class AutoBidManager implements AuctionObserver {
         });
         return result;
     }
-    public boolean cancel (String autoBidId, String bidderId){
-        for (List<AutoBid> list : autoBidsByAuction.values()){
-            synchronized (list){
-                for (AutoBid ab:list){
-                    if (ab.getId().equals(autoBidId) && ab.getBidderId().equals(bidderId))
-                    {
+    public boolean cancel(String autoBidId, String bidderId) {
+        for (List<AutoBid> list : autoBidsByAuction.values()) {
+            synchronized (list) {
+                for (AutoBid ab : list) {
+                    if (ab.getId().equals(autoBidId) && ab.getBidderId().equals(bidderId)) {
                         ab.deactivate();
+                        new AutoBidDAO().deactivateByUuid(autoBidId);
                         return true;
                     }
                 }
             }
         }
         return false;
+    }
+    //Lấy danh sách auto-bid đã đăng ký cho một phiên cụ thể
+    public List<AutoBid> getAutoBidsForAuction(String auctionId){
+        List<AutoBid> list = autoBidsByAuction.get(auctionId);
+        if (list == null) return Collections.emptyList();
+        return Collections.unmodifiableList(list);
+    }
+    public void restoreAutoBids(Auction auction, List<AutoBid> bids) {
+        if (bids == null || bids.isEmpty()) return;
+        List<AutoBid> list = autoBidsByAuction
+                .computeIfAbsent(auction.getId(), k -> Collections.synchronizedList(new ArrayList<>()));
+        list.addAll(bids);
+        if (observedAuctions.add(auction.getId())) {
+            auction.addObserver(this);
+        }
     }
 }
 
