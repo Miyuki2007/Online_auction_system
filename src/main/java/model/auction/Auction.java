@@ -76,6 +76,26 @@ public class Auction implements AuctionSubject,Serializable {
         this.bidLock = new ReentrantLock(true);
         this.observers = new CopyOnWriteArrayList<>();
     }
+    public Auction(String existingId,String sellerID, Item item,
+                   double startingPrice, LocalDateTime startTime,
+                   LocalDateTime endTime, boolean antiSnipeEnabled,
+                   long antiSnipeThresholdSec, long antiSnipeExtensionSec) {
+        this.id = existingId;
+        this.sellerId = sellerID;
+        this.item = item;
+        this.startingPrice = startingPrice;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.antiSnipeEnabled = antiSnipeEnabled;
+        this.antiSnipeThresholdSec = antiSnipeThresholdSec;
+        this.antiSnipeExtensionSec = antiSnipeExtensionSec;
+        this.state = AuctionState.OPEN;
+        this.currentHighestBid = startingPrice;
+        this.currentWinnerId = null;
+        this.bidHistory = Collections.synchronizedList(new ArrayList<>());
+        this.bidLock = new ReentrantLock(true);
+        this.observers = new CopyOnWriteArrayList<>();
+    }
     // Đặt giá
     public BidTransaction placeBid(String bidderId, double amount){
         BidTransaction record;

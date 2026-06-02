@@ -19,6 +19,13 @@ public class BidTransaction implements Comparable<BidTransaction>, Serializable 
         this.amount = amount;
         this.timestamp = LocalDateTime.now();
     }
+    public BidTransaction(String auctionId, String bidderId, double amount,LocalDateTime timestamp) {
+        this.id = UUID.randomUUID().toString();
+        this.auctionId = auctionId;
+        this.bidderId = bidderId;
+        this.amount = amount;
+        this.timestamp = timestamp;
+    }
 
     // Các hàm Getter
     public String getId() { return id; }
