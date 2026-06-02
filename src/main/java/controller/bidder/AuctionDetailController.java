@@ -24,8 +24,11 @@ import model.user.Bidder;
 import model.user.User;
 import protocol.Response;
 import protocol.requests.GetAuctionDetailRequest;
+import protocol.requests.GetMyBidHistoryRequest;
 import protocol.requests.PlaceBidRequest;
 import protocol.requests.RegisterAutoBidRequest;
+import protocol.requests.CancelAutoBidRequest;
+import protocol.responses.MyBidHistoryResponse;
 import protocol.responses.NotificationResponse;
 import protocol.responses.SuccessResponse;
 
@@ -34,6 +37,7 @@ import java.io.ByteArrayInputStream;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -112,11 +116,18 @@ public class AuctionDetailController {
     private Button btnPlaceBid;
     @FXML
     private Button btnAutoBid;
-
+    @FXML
+    private Button btnCancelAutoBid;
     // ===== Message =====
     @FXML
     private Label lblMessage;
 
+    // ==== Lịch sử bid ====
+    @FXML private TableView<BidTransaction> tblBidHistory;
+    @FXML private TableColumn<BidTransaction,String> colBidTime;
+    @FXML private TableColumn<BidTransaction,String> colBidAmount;
+    @FXML private Label lblAutoBidStatus;
+    @FXML private Button btnRefreshHistory;
     private Auction auction;
     private Timeline countdownTimer;
 
@@ -154,6 +165,10 @@ public class AuctionDetailController {
         startCountdownTimer();
 
         registerNotificationHandler();
+
+        txtBidAmount.textProperty().addListener((obs,oldV,newV)-> validateBidInput(newV));
+        initBidHistoryTable();
+        loadMyBidHistory();
 
         // Khi user nhập giá, validate và hiển thị hint ngay
         txtBidAmount.textProperty().addListener((obs, oldV, newV) -> validateBidInput(newV));
@@ -403,6 +418,7 @@ public class AuctionDetailController {
                         BidTransaction bid = success.getDataAs(BidTransaction.class);
                         showMessage("✅ Đặt giá thành công: " + formatMoney(finalAmount), false);
                         refreshAuction();
+                        loadMyBidHistory();
                     } else {
                         showMessage("Đặt giá thất bại: " + response.getMessage(), true);
                         updateBidButton();
@@ -540,6 +556,7 @@ public class AuctionDetailController {
                                 "✅ Đã đăng ký auto-bid! Max: %s, Bước: %s",
                                 formatMoney(maxBid), formatMoney(increment)), false);
                         refreshAuction();
+                        loadMyBidHistory();
                     } else {
                         showMessage("Đăng ký thất bại: " + response.getMessage(), true);
                     }
@@ -677,7 +694,116 @@ public class AuctionDetailController {
                     "login.fxml", "Đăng nhập - Hệ thống đấu giá");
         }
     }
+    // ============================================
+    //   LỊCH SỬ BID CỦA TÔI
+    // ============================================
 
+    private void initBidHistoryTable(){
+        if (tblBidHistory == null) return;
+        colBidTime.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(
+                cell.getValue().getTimestamp().format(DATE_FORMAT)
+        ));
+        colBidAmount.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(
+                formatMoney(cell.getValue().getAmount())
+        ));
+        tblBidHistory.setPlaceholder(new Label("Bạn chưa đặt giá trong phiên này."));
+    }
+    private void loadMyBidHistory(){
+        if (auction == null || tblBidHistory == null) return;
+        User user = Session.getInstance().getLoggedInUser();
+        if (user == null) return;
+        new Thread(() -> {
+            try{
+                AuctionClient client = Session.getInstance().getClient();
+                if (!client.isConnected()) client.connect();
+                GetMyBidHistoryRequest req = new GetMyBidHistoryRequest(auction.getId());
+                Response response = client.sendRequest(req);
+                Platform.runLater(() -> {
+                    if (response == null || !response.isOk()) return;
+                    SuccessResponse success = (SuccessResponse) response;
+                    MyBidHistoryResponse histData = success.getDataAs(MyBidHistoryResponse.class);
+                    if (histData == null) return;
+                    //Cập nhật bảng manual bids
+                    List<BidTransaction> bids = histData.getManualBids();
+                    tblBidHistory.getItems().setAll(bids == null ? java.util.Collections.emptyList() : bids);
+                    //Cập nhật trạng thái auto-bids
+                    if (lblAutoBidStatus != null){
+                        AutoBid ab = histData.getActivAutoBid();
+                        if (ab != null && ab.isActive()){
+                            lblAutoBidStatus.setText(String.format("🤖 Auto-bid đang hoạt động  |  Tối đa: %s  |  Bước: %s",
+                                    formatMoney(ab.getMaxBid()), formatMoney(ab.getIncrement())));
+                            lblAutoBidStatus.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
+                            // Hiện nút hủy, disable nút đăng ký
+                            if (btnCancelAutoBid != null) {
+                                btnCancelAutoBid.setVisible(true);
+                                btnCancelAutoBid.setManaged(true);
+                                btnCancelAutoBid.setUserData(ab.getId()); // lưu autoBidId
+                            }
+                            if (btnAutoBid != null) btnAutoBid.setDisable(true);
+                        }
+                        else{
+                            lblAutoBidStatus.setText("Chưa đăng ký auto-bid trong phiên này.");
+                            lblAutoBidStatus.setStyle("-fx-text-fill: #888;");
+                            // Ẩn nút hủy, bật lại nút đăng ký
+                            if (btnCancelAutoBid != null) {
+                                btnCancelAutoBid.setVisible(false);
+                                btnCancelAutoBid.setManaged(false);
+                            }
+                            if (btnAutoBid != null) btnAutoBid.setDisable(false);
+                        }
+                    }
+                });
+            } catch(Exception e) { e.printStackTrace(); }
+        }, "LoadBidHistory-Worker").start();
+    }
+    @FXML
+    void handleCancelAutoBid(){
+        if (btnCancelAutoBid == null || btnCancelAutoBid.getUserData() == null) return;
+        String autoBidId = (String) btnCancelAutoBid.getUserData();
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Bạn có chắc muốn hủy auto-bid đang hoạt động?",
+                ButtonType.YES, ButtonType.NO);
+        confirm.setTitle("Xác nhận hủy auto-bid");
+        confirm.setHeaderText(null);
+        confirm.initOwner(getWindow());
+        if (confirm.showAndWait().orElse(ButtonType.NO) != ButtonType.YES) return;
+
+        btnCancelAutoBid.setDisable(true);
+        btnCancelAutoBid.setText("⏳ Đang hủy...");
+
+        new Thread(() -> {
+            try {
+                AuctionClient client = Session.getInstance().getClient();
+                if (!client.isConnected()) client.connect();
+
+                CancelAutoBidRequest req = new CancelAutoBidRequest(autoBidId, auction.getId());
+                Response response = client.sendRequest(req);
+
+                Platform.runLater(() -> {
+                    btnCancelAutoBid.setDisable(false);
+                    btnCancelAutoBid.setText("❌  HỦY ĐẶT GIÁ TỰ ĐỘNG");
+                    if (response != null && response.isOk()) {
+                        showMessage("✅ Đã hủy auto-bid thành công.", false);
+                        loadMyBidHistory();
+                    } else {
+                        showMessage("Hủy thất bại: " +
+                                (response != null ? response.getMessage() : "Server không phản hồi"), true);
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    btnCancelAutoBid.setDisable(false);
+                    btnCancelAutoBid.setText("❌  HỦY ĐẶT GIÁ TỰ ĐỘNG");
+                    showMessage("Lỗi: " + e.getMessage(), true);
+                });
+            }
+        }, "CancelAutoBid-Worker").start();
+    }
+    @FXML
+    void handleRefreshHistory(){
+        loadMyBidHistory();
+    }
     // ============================================
     //   HELPERS
     // ============================================
@@ -751,4 +877,5 @@ public class AuctionDetailController {
             return lblItemName.getScene().getWindow();
         return null;
     }
+
 }

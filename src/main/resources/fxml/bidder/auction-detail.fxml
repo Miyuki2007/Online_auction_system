@@ -306,6 +306,10 @@
                                 <Button fx:id="btnAutoBid" onAction="#handleAutoBid" maxWidth="Infinity"
                                         style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14; -fx-padding: 12; -fx-background-radius: 6; -fx-cursor: hand;"
                                         text="🤖  ĐẶT GIÁ TỰ ĐỘNG" />
+                                <Button fx:id="btnCancelAutoBid" onAction="#handleCancelAutoBid" maxWidth="Infinity"
+                                        managed="false" visible="false"
+                                        style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13; -fx-padding: 10; -fx-background-radius: 6; -fx-cursor: hand;"
+                                        text="❌  HỦY ĐẶT GIÁ TỰ ĐỘNG" />
                             </VBox>
                         </HBox>
 
@@ -313,6 +317,52 @@
                         <Label fx:id="lblMessage" style="-fx-padding: 4 0;" text="" wrapText="true">
                             <font><Font size="12.0" /></font>
                         </Label>
+
+                        <Separator />
+
+                        <!-- ===== LỊCH SỬ BID CỦA TÔI ===== -->
+                        <VBox spacing="10">
+
+                            <!-- Tiêu đề section -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label style="-fx-text-fill: #1a1a2e;" text="📋  Lịch sử bid của tôi">
+                                    <font><Font name="System Bold" size="14.0" /></font>
+                                </Label>
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button fx:id="btnRefreshHistory" onAction="#handleRefreshHistory"
+                                        style="-fx-background-color: #eef2f7; -fx-text-fill: #1a1a2e; -fx-font-size: 11; -fx-padding: 4 10; -fx-background-radius: 4; -fx-cursor: hand; -fx-border-color: #d0d7e3; -fx-border-width: 1; -fx-border-radius: 4;"
+                                        text="🔄 Làm mới" />
+                            </HBox>
+
+                            <!-- Trạng thái auto-bid -->
+                            <HBox alignment="CENTER_LEFT" spacing="8"
+                                  style="-fx-background-color: #eaf4fe; -fx-padding: 10 14; -fx-background-radius: 6; -fx-border-color: #aed6f1; -fx-border-width: 1; -fx-border-radius: 6;">
+                                <Label fx:id="lblAutoBidStatus"
+                                       style="-fx-text-fill: #888; -fx-font-size: 12;"
+                                       text="Chưa đăng ký auto-bid trong phiên này."
+                                       wrapText="true">
+                                    <font><Font size="12.0" /></font>
+                                </Label>
+                            </HBox>
+
+                            <!-- Bảng lịch sử manual bids -->
+                            <TableView fx:id="tblBidHistory" prefHeight="200.0"
+                                       style="-fx-border-color: #e0e0e0; -fx-border-width: 1; -fx-background-radius: 6; -fx-border-radius: 6;">
+                                <columns>
+                                    <TableColumn fx:id="colBidTime" text="Thời gian đặt" prefWidth="200.0"
+                                                 style="-fx-font-weight: bold;"/>
+                                    <TableColumn fx:id="colBidAmount" text="Số tiền đặt (₫)" prefWidth="200.0"
+                                                 style="-fx-font-weight: bold;"/>
+                                </columns>
+                                <columnResizePolicy>
+                                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                </columnResizePolicy>
+                            </TableView>
+
+                            <Label style="-fx-text-fill: #aaa; -fx-font-size: 10;"
+                                   text="* Dữ liệu lưu vào cơ sở dữ liệu, không mất sau khi tắt server." />
+
+                        </VBox>
 
                     </VBox>
 
