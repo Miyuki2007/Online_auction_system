@@ -217,6 +217,15 @@ public class ClientHandler implements Runnable {
         if (Double.isNaN(amt) || Double.isInfinite(amt) || amt<=0 || amt > 1_000_000_000_000.0){
             return new ErrorResponse("Số tiền không hợp lệ");
         }
+        // Kiểm tra seller không được tự đấu giá phiên của chính mình
+        Auction targetAuction = manager.findAuctionById(req.getAuctionId());
+        if (targetAuction == null) {
+            return new ErrorResponse("Không tìm thấy phiên đấu giá.");
+        }
+        if (loggedInUsername.equals(targetAuction.getSellerId())) {
+            return new ErrorResponse("Người bán không thể đặt giá trong chính phiên đấu giá của mình.");
+        }
+
         BidTransaction bid = manager.placeBid(
                 req.getAuctionId(),
                 loggedInUsername,
