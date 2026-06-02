@@ -7,16 +7,19 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class AuctionServer {
     private static final int PORT = 12345;
     private final List<ClientHandler> connectedClients = new CopyOnWriteArrayList<>();
     private final ExecutorService threadPool = Executors.newFixedThreadPool(200);
+    private final ExecutorService broadcastPool = new ThreadPoolExecutor(
+            2,
+            10,
+            60L, TimeUnit.SECONDS,
+            new java.util.concurrent.LinkedBlockingQueue<>(500),
+            new java.util.concurrent.ThreadPoolExecutor.DiscardOldestPolicy()
+    );
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private volatile boolean running = false;
     public void start(){
@@ -53,15 +56,16 @@ public class AuctionServer {
             client.sendResponse(notification);
         }
     }
-    public void broadcastToAuction(String auctionId, protocol.Response notification){
-        int count = 0;
-        for (ClientHandler client: connectedClients){
-            if (auctionId.equals(client.getWatchAuctionId())){
-                client.sendResponse(notification);
-                count++;
+    public void broadcastToAuction(String auctionId, Response notification) {
+        for (ClientHandler client : connectedClients) {
+            if (auctionId.equals(client.getWatchAuctionId())) {
+                try {
+                    broadcastPool.submit(() -> client.sendResponse(notification));
+                } catch (java.util.concurrent.RejectedExecutionException ignored) {
+                    // pool đầy — bỏ qua, client sẽ nhận update lần sau
+                }
             }
         }
-        System.out.println(" Broadcast tới " + count + " client đang xem auction " + auctionId);
     }
     public void removeClient(ClientHandler client){
         connectedClients.remove(client);
@@ -70,6 +74,7 @@ public class AuctionServer {
     public void shutdown(){
         running = false;
         scheduler.shutdownNow();
+        broadcastPool.shutdown();
         threadPool.shutdown();
         try{
             if (!threadPool.awaitTermination(5,TimeUnit.SECONDS)){

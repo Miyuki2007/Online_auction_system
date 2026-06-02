@@ -463,9 +463,11 @@ public class ClientHandler implements Runnable {
 
     public void sendResponse(Response response) {
         try {
-            out.writeObject(response);
-            out.flush();
-            out.reset();
+            synchronized (out){
+                out.writeObject(response);
+                out.flush();
+                out.reset();
+            }
         } catch (IOException e) {
             System.err.println("Lỗi gửi response: " + e.getMessage());
         }

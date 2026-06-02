@@ -303,4 +303,12 @@ public class Auction implements AuctionSubject,Serializable {
     public void setCurrentHighestBid(double price) {
         this.currentHighestBid = price;
     }
+    public void applyBid(BidTransaction bid, LocalDateTime newEndTime) {
+        this.currentHighestBid = bid.getAmount();
+        this.currentWinnerId   = bid.getBidderId();
+        this.bidHistory.add(bid);
+        if (newEndTime != null) {
+            this.endTime = newEndTime;   // anti-snipe đã gia hạn
+        }
+    }
 }

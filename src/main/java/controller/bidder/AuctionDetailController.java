@@ -603,24 +603,54 @@ public class AuctionDetailController {
     private void registerNotificationHandler() {
         AuctionClient client = Session.getInstance().getClient();
         if (client == null) return;
+
         client.setOnNotification(notification -> {
-            // xử lí notification đúng kiểu và đúng phiên d
             if (!(notification instanceof NotificationResponse n)) return;
             if (auction == null) return;
-            refreshAuction();
+
             Platform.runLater(() -> {
                 switch (n.getNotificationType()) {
-                    case BID_UPDATE -> showMessage(
-                            "🔔 Có người vừa đặt giá mới — đang cập nhật...", false);
-                    case TIME_EXTENDED -> showMessage(
-                            "⏱ Phiên đấu giá được gia hạn (anti-snipe).", false);
-                    case STATE_CHANGED -> showMessage(
-                            "ℹ️ Trạng thái phiên đã thay đổi: " + n.getMessage(), false);
-                    default -> { /* không xử lý */ }
+
+                    case BID_UPDATE -> {
+                        BidTransaction bid = n.getDataAs(BidTransaction.class);
+                        if (bid != null) {
+                            // Cập nhật state auction trong RAM từ data notification
+                            auction.applyBid(bid,null);
+                            renderAuction();
+                        }
+                        showMessage("🔔 Bid mới: " + (bid != null ? formatMoney(bid.getAmount()) : ""), false);
+                    }
+
+                    case TIME_EXTENDED -> {
+                        // notification data là Auction đã được gia hạn
+                        Auction updated = n.getDataAs(Auction.class);
+                        if (updated != null) {
+                            auction.applyBid(
+                                    updated.getBidHistory().get(updated.getBidHistory().size() - 1),
+                                    updated.getEndTime()
+                            );
+                            renderAuction();
+                        }
+                        showMessage("⏱ Phiên được gia hạn (anti-snipe).", false);
+                    }
+
+                    case STATE_CHANGED -> {
+                        AuctionState newState = n.getDataAs(AuctionState.class);
+                        if (newState != null) {
+                            updateBidButton();
+                            if (newState == AuctionState.FINISHED || newState == AuctionState.CANCELED) {
+                                stopTimer();
+                            }
+                        }
+                        showMessage("ℹ️ " + n.getMessage(), false);
+                    }
+
+                    default -> { }
                 }
             });
         });
     }
+
 
     // ============================================
     //   SIDEBAR HANDLERS
