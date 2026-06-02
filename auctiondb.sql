@@ -26,6 +26,7 @@ CREATE TABLE Categories (
 -- Bảng Phiên đấu giá (Đại diện cho sản phẩm đang được đấu giá)
 CREATE TABLE Auctions (
     auction_id INT AUTO_INCREMENT PRIMARY KEY,
+    uuid       VARCHAR(36) UNIQUE,
     seller_id INT NOT NULL,
     category_id INT,
     title VARCHAR(255) NOT NULL,
@@ -53,7 +54,7 @@ CREATE TABLE Bids (
     auction_id INT NOT NULL,
     bidder_id INT NOT NULL,
     bid_amount DECIMAL(15, 2) NOT NULL,
-    bid_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    bid_time TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
     FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id) ON DELETE CASCADE,
     FOREIGN KEY (bidder_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
@@ -70,7 +71,21 @@ CREATE TABLE Payments (
     FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id),
     FOREIGN KEY (buyer_id) REFERENCES Users(user_id)
 );
-
+-- Bảng Auto-bid
+CREATE TABLE AutoBids (
+                          autobid_id  INT AUTO_INCREMENT PRIMARY KEY,
+                          uuid        VARCHAR(36)   NOT NULL UNIQUE,
+                          auction_id  INT           NOT NULL,
+                          bidder_id   INT           NOT NULL,
+                          max_bid     DECIMAL(15,2) NOT NULL,
+                          increment   DECIMAL(15,2) NOT NULL,
+                          is_active   BOOLEAN       DEFAULT TRUE,
+                          created_at  DATETIME      DEFAULT NOW(),
+                          FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id) ON DELETE CASCADE,
+                          FOREIGN KEY (bidder_id)  REFERENCES Users(user_id)       ON DELETE CASCADE
+);
+CREATE INDEX idx_autobid_auction ON AutoBids(auction_id);
+CREATE INDEX idx_autobid_bidder  ON AutoBids(bidder_id);
 -- Tạo Index để tối ưu hóa truy vấn tìm kiếm
 CREATE INDEX idx_auction_status ON Auctions(status);
 CREATE INDEX idx_auction_endtime ON Auctions(end_time);

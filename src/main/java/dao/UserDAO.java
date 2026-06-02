@@ -85,17 +85,14 @@ public class UserDAO {
                 String role = rs.getString("role");
                 String fullName = rs.getString("full_name");
                 String email = rs.getString("email");
-                // 3. Trả về đúng loại đối tượng (Bidder hoặc Seller) dựa trên vai trò
-                // Giả sử model của bạn có constructor: (username, null, email, fullName): Không truyền password thật vào object trả về
-                    if ("BIDDER".equalsIgnoreCase(role)) {
-                        return new model.user.Bidder(username, null, email, fullName);
-                    } else if ("SELLER".equalsIgnoreCase(role)) {
-                        return new model.user.Seller(username, null, email, fullName);
-                    }
-                    else if ("ADMIN".equalsIgnoreCase(role)) {
-                        return new model.user.Admin(username, null, email, fullName);
-                    }
+                if ("ADMIN".equalsIgnoreCase(role)) {
+                    return new model.user.Admin(username, null, email, fullName);
+                } else {
+                    // Ép tất cả các user thông thường (dù là BIDDER hay gì) đều trở thành đối tượng Seller
+                    // để họ có đầy đủ các thuộc tính và phương thức của người bán.
+                    return new model.user.Seller(username, null, email, fullName);
                 }
+            }
         } catch (SQLException e) {
             System.err.println("❌ Lỗi thực thi truy vấn authenticate:");
             e.printStackTrace();

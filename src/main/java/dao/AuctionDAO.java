@@ -41,16 +41,25 @@ public class AuctionDAO {
                 boolean antiSnipeEnabled = rs.getBoolean("anti_snipe_enabled");
                 long antiSnipeThreshold = rs.getLong("anti_snipe_threshold_sec");
                 long antiSnipeExtension = rs.getLong("anti_snipe_extension_sec");
-
+                String uuid = rs.getString("uuid");
                 Item item = model.factory.ItemFactory.createItem(
                         categoryName, java.util.UUID.randomUUID().toString(),
                         title, description, startingPrice, "N/A",
                         imageData
                 );
 
-                Auction auction = new Auction(sellerUsername, item, startingPrice,
-                        startTime, endTime, antiSnipeEnabled, antiSnipeThreshold, antiSnipeExtension);
-
+                Auction auction;
+                if (uuid != null && !uuid.isEmpty()) {
+                    // ✅ Restore với UUID cũ từ DB
+                    auction = new Auction(uuid, sellerUsername, item, startingPrice,
+                            startTime, endTime, antiSnipeEnabled,
+                            antiSnipeThreshold, antiSnipeExtension);
+                } else {
+                    // Fallback cho các auction cũ chưa có uuid trong DB
+                    auction = new Auction(sellerUsername, item, startingPrice,
+                            startTime, endTime, antiSnipeEnabled,
+                            antiSnipeThreshold, antiSnipeExtension);
+                }
                 if ("RUNNING".equals(dbStatus)) {
                     auction.start();
                 } else if ("FINISHED".equals(dbStatus)) {
@@ -110,18 +119,17 @@ public class AuctionDAO {
     public boolean insertAuction(String sellerUsername, String categoryName, String title,
                                  String description, double startingPrice, long durationMinutes,
                                  byte[] imageData,
-                                 boolean antiSnipeEnabled, long antiSnipeThreshold, long antiSnipeExtension) {
+                                 boolean antiSnipeEnabled, long antiSnipeThreshold, long antiSnipeExtension, String uuid) {
         String sql = "INSERT INTO Auctions (seller_id, category_id, title, description, image_data, " +
                 "starting_price, current_price, start_time, end_time, status, " +
-                "anti_snipe_enabled, anti_snipe_threshold_sec, anti_snipe_extension_sec) " +
+                "anti_snipe_enabled, anti_snipe_threshold_sec, anti_snipe_extension_sec, uuid) " +
                 "SELECT u.user_id, c.category_id, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? MINUTE), 'RUNNING', " +
-                "?, ?, ? " +
+                "?, ?, ?, ? " +
                 "FROM Users u, Categories c " +
                 "WHERE u.username = ? AND c.name = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, title);
             ps.setString(2, description);
             ps.setBytes(3, imageData);
@@ -131,8 +139,9 @@ public class AuctionDAO {
             ps.setBoolean(7, antiSnipeEnabled);
             ps.setLong(8, antiSnipeThreshold);
             ps.setLong(9, antiSnipeExtension);
-            ps.setString(10, sellerUsername);
-            ps.setString(11, categoryName);
+            ps.setString(10, uuid);
+            ps.setString(11, sellerUsername);
+            ps.setString(12, categoryName);
 
             int result = ps.executeUpdate();
             return result > 0;
