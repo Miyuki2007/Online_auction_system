@@ -23,24 +23,27 @@ public class TestDatabaseCleaner {
             );
         }
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement()) {
+        Connection conn = DatabaseConnection.getConnection();
+        if (conn == null) {
+            throw new RuntimeException("Không kết nối được DB test — kiểm tra DB_URL, DB_USER, DB_PASS");
+        }
 
-            if (conn == null) {
-                throw new RuntimeException("Không kết nối được DB test");
-            }
-
-            // Tắt foreign key check để xóa được theo bất kỳ thứ tự
+        try (conn; Statement stmt = conn.createStatement()) {
             stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
-
-            // Xóa data trong các bảng (giữ schema)
+            stmt.execute("TRUNCATE TABLE AutoBids");
             stmt.execute("TRUNCATE TABLE Bids");
+            stmt.execute("TRUNCATE TABLE Payments");
             stmt.execute("TRUNCATE TABLE Auctions");
             stmt.execute("TRUNCATE TABLE Users");
-
-
+            stmt.execute("TRUNCATE TABLE Categories");  // ← truncate luôn
             stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
-
+            stmt.execute("""
+    INSERT INTO Categories (name, description) VALUES
+        ('ELECTRONICS', 'Đồ điện tử, công nghệ'),
+        ('VEHICLE',     'Phương tiện giao thông'),
+        ('ART',         'Các tác phẩm nghệ thuật'),
+        ('OTHERS',      'Các sản phẩm khác')
+        """);
         } catch (Exception e) {
             throw new RuntimeException("Không thể clean test database: " + e.getMessage(), e);
         }

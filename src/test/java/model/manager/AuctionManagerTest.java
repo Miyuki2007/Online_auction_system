@@ -39,6 +39,11 @@ class AuctionManagerTest {
             throw new IllegalStateException("AuctionManagerTest CHỈ được chạy với database test (auctiondb_test).\n");
         }
         System.out.println("✅ Test database verified: " + url);
+        String pass = System.getenv("DB_PASS");
+        if (pass == null || pass.isBlank()) {
+            throw new IllegalStateException("Biến môi trường DB_PASS chưa được set.");
+        }
+        System.out.println("✅ Test database verified: " + url);
     }
 
     @BeforeEach
@@ -66,6 +71,9 @@ class AuctionManagerTest {
         Field instance = AuctionManager.class.getDeclaredField("instance");
         instance.setAccessible(true);
         instance.set(null,null);
+        Field abmField = AutoBidManager.class.getDeclaredField("instance");
+        abmField.setAccessible(true);
+        abmField.set(null, null);
     }
     //====TEST SINGLETON====
 

@@ -12,6 +12,7 @@ import protocol.Request;
 import protocol.Response;
 import protocol.requests.*;
 import protocol.responses.ErrorResponse;
+import protocol.responses.MyBidHistoryResponse;
 import protocol.responses.NotificationResponse;
 import protocol.responses.SuccessResponse;
 import protocol.requests.RegisterAutoBidRequest;
@@ -116,6 +117,12 @@ public class ClientHandler implements Runnable {
             if (request instanceof AdminGetStatsRequest req){
                 return handleAdminGetStats(req);
             }
+            if (request instanceof GetMyBidHistoryRequest req){
+                return handleGetMyBidHistory(req,manager);
+            }
+            if (request instanceof CancelAutoBidRequest req){
+                return handleCancelAutoBid(req);
+            }
             return new ErrorResponse("Yêu cầu không được hỗ trợ: "
                     + request.getType());
         } catch (Exception e) {
@@ -129,34 +136,34 @@ public class ClientHandler implements Runnable {
     // ========== HANDLERS ==========
 
     private Response handleLogin(LoginRequest req, AuctionManager manager) {
-       String u = req.getUsername();
-       if (u == null || u.isBlank()){
-           return new ErrorResponse("Tên đăng nhập không hợp lệ");
-       }
-       Long lockEnd = LOCKED_UNTIL.get(u);
-       if (lockEnd != null && lockEnd > System.currentTimeMillis()){
-           long remainSec = (lockEnd - System.currentTimeMillis()) / 1000;
-           return new ErrorResponse("Tài khoản bị tạm khóa do nhập sai nhiều lần. " + "Thử lại sau " + remainSec + "giây.");
-       }
-       try
-       {
-           User user = manager.authenticateUser(u,req.getPassword());
-           FAILED_ATTEMPTS.remove(u);
-           LOCKED_UNTIL.remove(u);
-           if (user!=null){
-               this.loggedInUsername = user.getUsername();
-           }
-           return new SuccessResponse("Đăng nhập thành công.",user);
-       } catch(model.auction.exception.AuthenticationException e){
-           int n = FAILED_ATTEMPTS.computeIfAbsent(u,
-                   k -> new java.util.concurrent.atomic.AtomicInteger()).incrementAndGet();
-           if (n>=MAX_ATTEMPTS){
-               LOCKED_UNTIL.put(u,System.currentTimeMillis() + LOCK_DURATION_MS);
-               FAILED_ATTEMPTS.remove(u);
-               return new ErrorResponse("Đã sai " + MAX_ATTEMPTS + " lần." + "Tài khoản bị khóa 5 phút.");
-           }
+        String u = req.getUsername();
+        if (u == null || u.isBlank()){
+            return new ErrorResponse("Tên đăng nhập không hợp lệ");
+        }
+        Long lockEnd = LOCKED_UNTIL.get(u);
+        if (lockEnd != null && lockEnd > System.currentTimeMillis()){
+            long remainSec = (lockEnd - System.currentTimeMillis()) / 1000;
+            return new ErrorResponse("Tài khoản bị tạm khóa do nhập sai nhiều lần. " + "Thử lại sau " + remainSec + "giây.");
+        }
+        try
+        {
+            User user = manager.authenticateUser(u,req.getPassword());
+            FAILED_ATTEMPTS.remove(u);
+            LOCKED_UNTIL.remove(u);
+            if (user!=null){
+                this.loggedInUsername = user.getUsername();
+            }
+            return new SuccessResponse("Đăng nhập thành công.",user);
+        } catch(model.auction.exception.AuthenticationException e){
+            int n = FAILED_ATTEMPTS.computeIfAbsent(u,
+                    k -> new java.util.concurrent.atomic.AtomicInteger()).incrementAndGet();
+            if (n>=MAX_ATTEMPTS){
+                LOCKED_UNTIL.put(u,System.currentTimeMillis() + LOCK_DURATION_MS);
+                FAILED_ATTEMPTS.remove(u);
+                return new ErrorResponse("Đã sai " + MAX_ATTEMPTS + " lần." + "Tài khoản bị khóa 5 phút.");
+            }
             return new ErrorResponse(e.getMessage() + " (còn " + (MAX_ATTEMPTS-n) + " lần thử)");
-       }
+        }
     }
 
     private Response handleRegister(RegisterRequest req, AuctionManager manager) {
@@ -252,11 +259,6 @@ public class ClientHandler implements Runnable {
                 req.getImageData()
         );
         if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
-        // Chỉ seller mới được tạo
-        User me = new dao.UserDAO().findByUsername(loggedInUsername);
-        if (!(me instanceof model.user.Seller)){
-            return new ErrorResponse("Chỉ Seller mới được tạo phiên đấu giá.");
-        }
         Auction auction = manager.createAuction(
                 req.getSellerId(),
                 item,
@@ -320,7 +322,15 @@ public class ClientHandler implements Runnable {
         AutoBid autoBid = AutoBidManager.getInstance().register(auction,loggedInUsername,req.getMaxBid(),req.getIncrement());
         return new SuccessResponse(
                 String.format("Đã đăng kí auto-bid: max %.2f, bước nhảy %.2f", req.getMaxBid(),req.getIncrement()), autoBid);
-
+    }
+    private Response handleCancelAutoBid(CancelAutoBidRequest req){
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
+        boolean ok = model.manager.AutoBidManager.getInstance().cancel(req.getAutoBidId(),loggedInUsername);
+        if (ok){
+            return new SuccessResponse("Đã hủy auto-bid thành công.", null);
+        } else{
+            return new ErrorResponse("Không tìm thấy auto-bid.");
+        }
     }
     private boolean verifyAdmin(){
         if (loggedInUsername==null || loggedInUsername.isBlank()) return false;
@@ -377,7 +387,7 @@ public class ClientHandler implements Runnable {
                         NotificationResponse.NotificationType.STATE_CHANGED,
                         "Phiên đấu giá đã bị Admin hủy. Lí do: " +
                                 (req.getReason()==null || req.getReason().isBlank()
-                                ? "không có" : req.getReason()), auction.getState()));
+                                        ? "không có" : req.getReason()), auction.getState()));
         System.out.println("⚠️  Admin " + req.getAdminUsername() +
                 " đã dừng auction " + req.getAuctionId());
         return new SuccessResponse("Đã hủy phiên đấu giá.", auction);
@@ -411,6 +421,34 @@ public class ClientHandler implements Runnable {
                 totalUsers,bidders,sellers,active,locked,
                 totalAuctions,running,finished,canceled,paid,volume[0],(int) volume[1]);
         return new SuccessResponse("Thống kê hệ thống. ", stats);
+    }
+    private Response handleGetMyBidHistory(GetMyBidHistoryRequest req, AuctionManager manager){
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
+        Auction auction = manager.findAuctionById(req.getAuctionId());
+        if (auction == null) return new ErrorResponse("Không tìm thấy phiên đấu giá.");
+
+        // Auction.id là UUID, không phải DB int — phải tra bằng title + seller (giống placeBid)
+        dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+        int auctionDbId = auctionDAO.findAuctionIdByTitleAndSeller(
+                auction.getItem().getName(), auction.getSellerId());
+        if (auctionDbId <= 0) return new ErrorResponse("Không tìm thấy phiên trong DB.");
+
+        dao.BidDAO bidDAO = new dao.BidDAO();
+        // Lấy manual bids từ DB
+        List<BidTransaction> myBids = bidDAO.loadBidsByAuctionAndUser(auctionDbId, auction.getId(),loggedInUsername);
+        // Lấy auto-bid đang hoạt động
+        model.auction.AutoBid activAutoBid = null;
+        java.util.List<model.auction.AutoBid> autoBids = model.manager.AutoBidManager.getInstance().getAutoBidsForAuction(auction.getId());
+        if (autoBids != null){
+            for (model.auction.AutoBid ab : autoBids){
+                if (ab.isActive() && loggedInUsername.equals(ab.getBidderId())){
+                    activAutoBid = ab;
+                    break;
+                }
+            }
+        }
+        MyBidHistoryResponse data = new MyBidHistoryResponse(myBids,activAutoBid);
+        return new SuccessResponse("Lịch sử bid của bạn.", data);
     }
     // ========== UTILITIES ==========
 

@@ -1,7 +1,9 @@
 package model.manager;
 
+import dao.AutoBidDAO;
 import dao.UserDAO;
 import model.auction.Auction;
+import model.auction.AutoBid;
 import model.auction.BidTransaction;
 import model.item.Item;
 import model.user.User;
@@ -26,7 +28,7 @@ public class AuctionManager {
     private AuctionManager() {
         this.activeAuctions = new ConcurrentHashMap<>();
         this.registeredUsers = new ConcurrentHashMap<>();
-        loadAuctionsFromDB();
+
     }
 
     public static AuctionManager getInstance() {
@@ -34,6 +36,7 @@ public class AuctionManager {
             synchronized (AuctionManager.class) {
                 if (instance == null) {
                     instance = new AuctionManager();
+                    instance.loadAuctionsFromDB();
                 }
             }
         }
@@ -224,7 +227,8 @@ public class AuctionManager {
 
         // Tính toán số phút (durationMinutes) từ thời gian start và end
         long durationMinutes = java.time.Duration.between(start, end).toMinutes();
-
+        Auction auction = new Auction(sellerId, item, startingPrice, start, end,
+                antiSnipe, threshold, extension);
         // Gọi hàm insertAuction (đã được sửa) của DAO
         boolean isSaved = auctionDAO.insertAuction(
                 sellerId,
@@ -236,12 +240,12 @@ public class AuctionManager {
                 item.getImageData(),
                 antiSnipe,
                 threshold,
-                extension
+                extension,
+                auction.getId()
         );
 
         // 2. KIỂM TRA KẾT QUẢ VÀ LƯU VÀO RAM NẾU THÀNH CÔNG
         if (isSaved) {
-            Auction auction = new Auction(sellerId, item, startingPrice, start, end, antiSnipe, threshold, extension);
             activeAuctions.put(auction.getId(), auction);
             auction.start();
             System.out.println("✅ Đã lưu phiên đấu giá mới vào Database và RAM thành công: " + auction.getId());
@@ -259,10 +263,33 @@ public class AuctionManager {
         return Collections.unmodifiableList(new ArrayList<>(registeredUsers.values()));
     }
     private void loadAuctionsFromDB() {
-        dao.AuctionDAO dao = new dao.AuctionDAO();
-        List<Auction> loaded = dao.loadAllAuctionsFromDB();
-        for (Auction a : loaded) {
-            activeAuctions.put(a.getId(), a);
+        dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+        AutoBidDAO autoBidDAO = new AutoBidDAO();
+        List<Auction> loaded = auctionDAO.loadAllAuctionsFromDB();
+
+        for (Auction auction : loaded) {
+            activeAuctions.put(auction.getId(), auction);
+
+            // Chỉ load AutoBid cho các phiên chưa kết thúc
+            if (!auction.isEnded()) {
+                // Tìm dbAuctionId thực tế trong Database
+                int dbAuctionId = auctionDAO.findAuctionIdByTitleAndSeller(
+                        auction.getItem().getName(),
+                        auction.getSellerId()
+                );
+
+                if (dbAuctionId > 0) {
+                    // Tùy vào hàm loadActiveAutoBidsByAuction của bạn nhận tham số nào (1 hay 2 tham số)
+                    // Mình giả sử nó nhận 2 tham số như ở vòng lặp thứ 2 của bạn
+                    List<AutoBid> autoBids = autoBidDAO.loadActiveAutoBidsByAuction(dbAuctionId, auction.getId());
+
+                    // Tránh NullPointerException nếu AutoBidManager chưa được khởi tạo đúng
+                    if (autoBids != null && !autoBids.isEmpty()) {
+                        // Cần đảm bảo bạn đã import AutoBidManager
+                        AutoBidManager.getInstance().restoreAutoBids(auction, autoBids);
+                    }
+                }
+            }
         }
     }
 }
