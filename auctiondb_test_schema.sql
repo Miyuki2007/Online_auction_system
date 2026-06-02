@@ -1,84 +1,103 @@
+DROP DATABASE IF EXISTS auctiondb_test;
+CREATE DATABASE auctiondb_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE auctiondb_test;
 
 -- Bảng Người dùng (Lưu trữ cả người bán và người mua)
 CREATE TABLE Users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    full_name VARCHAR(100),
-    role VARCHAR(20),
-    phone_number VARCHAR(15),
-    address TEXT,
-    balance DECIMAL(15, 2) DEFAULT 0.00,
-    is_active BOOLEAN DEFAULT  TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                       user_id INT AUTO_INCREMENT PRIMARY KEY,
+                       username VARCHAR(50) NOT NULL UNIQUE,
+                       password_hash VARCHAR(255) NOT NULL,
+                       email VARCHAR(100) NOT NULL UNIQUE,
+                       full_name VARCHAR(100),
+                       role VARCHAR(20),
+                       phone_number VARCHAR(15),
+                       address TEXT,
+                       balance DECIMAL(15, 2) DEFAULT 0.00,
+                       is_active BOOLEAN DEFAULT  TRUE,
+                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 DESCRIBE Users;
 -- Bảng Danh mục sản phẩm
 CREATE TABLE Categories (
-    category_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT
+                            category_id INT AUTO_INCREMENT PRIMARY KEY,
+                            name VARCHAR(100) NOT NULL,
+                            description TEXT
 );
 
 -- Bảng Phiên đấu giá (Đại diện cho sản phẩm đang được đấu giá)
 CREATE TABLE Auctions (
-    auction_id INT AUTO_INCREMENT PRIMARY KEY,
-    seller_id INT NOT NULL,
-    category_id INT,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    image_data LONGBLOB,
-    starting_price DECIMAL(15, 2) NOT NULL, -- Giá khởi điểm
-    current_price DECIMAL(15, 2) NOT NULL,  -- Giá hiện tại (cập nhật liên tục khi có bid)
-    buy_now_price DECIMAL(15, 2),           -- Giá mua ngay (tùy chọn)
-    start_time DATETIME NOT NULL,
-    end_time DATETIME NOT NULL,
-    status ENUM('OPEN', 'RUNNING', 'FINISHED', 'PAID', 'CANCELED') DEFAULT 'OPEN',
-    anti_snipe_enabled BOOLEAN DEFAULT FALSE,
-    anti_snipe_threshold_sec BIGINT DEFAULT 0,
-    anti_snipe_extension_sec BIGINT DEFAULT 0,
-    winner_id INT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (seller_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE SET NULL,
-    FOREIGN KEY (winner_id) REFERENCES Users(user_id) ON DELETE SET NULL
+                          auction_id INT AUTO_INCREMENT PRIMARY KEY,
+                          uuid       VARCHAR(36) UNIQUE,
+                          seller_id INT NOT NULL,
+                          category_id INT,
+                          title VARCHAR(255) NOT NULL,
+                          description TEXT,
+                          image_data LONGBLOB,
+                          starting_price DECIMAL(15, 2) NOT NULL, -- Giá khởi điểm
+                          current_price DECIMAL(15, 2) NOT NULL,  -- Giá hiện tại (cập nhật liên tục khi có bid)
+                          buy_now_price DECIMAL(15, 2),           -- Giá mua ngay (tùy chọn)
+                          start_time DATETIME NOT NULL,
+                          end_time DATETIME NOT NULL,
+                          status ENUM('OPEN', 'RUNNING', 'FINISHED', 'PAID', 'CANCELED') DEFAULT 'OPEN',
+                          anti_snipe_enabled BOOLEAN DEFAULT FALSE,
+                          anti_snipe_threshold_sec BIGINT DEFAULT 0,
+                          anti_snipe_extension_sec BIGINT DEFAULT 0,
+                          winner_id INT DEFAULT NULL,
+                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                          FOREIGN KEY (seller_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+                          FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE SET NULL,
+                          FOREIGN KEY (winner_id) REFERENCES Users(user_id) ON DELETE SET NULL
 );
 
 -- Bảng Lượt trả giá (Lịch sử đấu giá của từng phiên)
 CREATE TABLE Bids (
-    bid_id INT AUTO_INCREMENT PRIMARY KEY,
-    auction_id INT NOT NULL,
-    bidder_id INT NOT NULL,
-    bid_amount DECIMAL(15, 2) NOT NULL,
-    bid_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id) ON DELETE CASCADE,
-    FOREIGN KEY (bidder_id) REFERENCES Users(user_id) ON DELETE CASCADE
+                      bid_id INT AUTO_INCREMENT PRIMARY KEY,
+                      auction_id INT NOT NULL,
+                      bidder_id INT NOT NULL,
+                      bid_amount DECIMAL(15, 2) NOT NULL,
+                      bid_time TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
+                      FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id) ON DELETE CASCADE,
+                      FOREIGN KEY (bidder_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
 
 -- Bảng Giao dịch/Thanh toán (Xử lý khi phiên đấu giá kết thúc thành công)
 CREATE TABLE Payments (
-    payment_id INT AUTO_INCREMENT PRIMARY KEY,
-    auction_id INT NOT NULL,
-    buyer_id INT NOT NULL,
-    amount DECIMAL(15, 2) NOT NULL,
-    payment_method VARCHAR(50),
-    payment_status ENUM('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED') DEFAULT 'PENDING',
-    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id),
-    FOREIGN KEY (buyer_id) REFERENCES Users(user_id)
+                          payment_id INT AUTO_INCREMENT PRIMARY KEY,
+                          auction_id INT NOT NULL,
+                          buyer_id INT NOT NULL,
+                          amount DECIMAL(15, 2) NOT NULL,
+                          payment_method VARCHAR(50),
+                          payment_status ENUM('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED') DEFAULT 'PENDING',
+                          transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                          FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id),
+                          FOREIGN KEY (buyer_id) REFERENCES Users(user_id)
 );
-
+-- Bảng Auto-bid
+CREATE TABLE AutoBids (
+                          autobid_id  INT AUTO_INCREMENT PRIMARY KEY,
+                          uuid        VARCHAR(36)   NOT NULL UNIQUE,
+                          auction_id  INT           NOT NULL,
+                          bidder_id   INT           NOT NULL,
+                          max_bid     DECIMAL(15,2) NOT NULL,
+                          increment   DECIMAL(15,2) NOT NULL,
+                          is_active   BOOLEAN       DEFAULT TRUE,
+                          created_at  DATETIME      DEFAULT NOW(),
+                          FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id) ON DELETE CASCADE,
+                          FOREIGN KEY (bidder_id)  REFERENCES Users(user_id)       ON DELETE CASCADE
+);
+CREATE INDEX idx_autobid_auction ON AutoBids(auction_id);
+CREATE INDEX idx_autobid_bidder  ON AutoBids(bidder_id);
 -- Tạo Index để tối ưu hóa truy vấn tìm kiếm
 CREATE INDEX idx_auction_status ON Auctions(status);
 CREATE INDEX idx_auction_endtime ON Auctions(end_time);
 CREATE INDEX idx_bids_auction ON Bids(auction_id);
 
+
 INSERT INTO Categories (name, description) VALUES
-    ('ELECTRONICS', 'Đồ điện tử, công nghệ'),
-    ('VEHICLE', 'Phương tiện giao thông'),
-    ('ART', 'Các tác phẩm nghệ thuật'),
-    ('OTHERS', 'Các sản phẩm khác');
+                                               ('ELECTRONICS', 'Đồ điện tử, công nghệ'),
+                                               ('VEHICLE', 'Phương tiện giao thông'),
+                                               ('ART', 'Các tác phẩm nghệ thuật'),
+                                               ('OTHERS', 'Các sản phẩm khác');
 INSERT IGNORE INTO Users (username, password_hash, email, full_name, role, is_active)
 VALUES ('admin',
         '$2a$12$M5g9Q5wT.JPxnQpZjV5HXOJrU2YfH6tJqJ1KkPpZZQlBcUjT.YqHK',
