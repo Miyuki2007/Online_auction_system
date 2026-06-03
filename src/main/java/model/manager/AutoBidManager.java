@@ -57,7 +57,8 @@ public class AutoBidManager implements AuctionObserver {
         if (observedAuctions.add(auction.getId())){
             auction.addObserver(this);
         }
-        triggerAutoBid(auction,bidderId);
+        // triggerAutoBid được gọi bởi ClientHandler sau khi register()
+        // để có thể broadcast kết quả lên tất cả clients.
         return autoBid;
 
     }
@@ -67,6 +68,8 @@ public class AutoBidManager implements AuctionObserver {
         try{
             isProcessing.set(true);
             triggerAutoBid(auction,bid.getBidderId());
+            // onNewBid không cần dùng kết quả trả về vì
+            // ClientHandler sẽ broadcast sau khi gọi register/placeBid
         } finally{
             isProcessing.set(false);
         }
@@ -92,9 +95,10 @@ public class AutoBidManager implements AuctionObserver {
     }
     @Override
     public void onAuctionTimeExtended (Auction auction, long extensionSeconds){}
-    private void triggerAutoBid(Auction auction, String excludeBidderId){
+    // Trả về BidTransaction nếu autobid được thực hiện thành công, null nếu không
+    public BidTransaction triggerAutoBid(Auction auction, String excludeBidderId){
         List<AutoBid> bids = autoBidsByAuction.get(auction.getId());
-        if (bids == null || bids.isEmpty()) return;
+        if (bids == null || bids.isEmpty()) return null;
         double currentPrice = auction.getCurrentHighestBid();
         AutoBidDAO autoBidDAO = new AutoBidDAO();
         PriorityQueue<AutoBid> queue = new PriorityQueue<>();
@@ -110,7 +114,7 @@ public class AutoBidManager implements AuctionObserver {
                 queue.offer(ab);
             }
         }
-        if (queue.isEmpty()) return;
+        if (queue.isEmpty()) return null;
         AutoBid winner = queue.poll();
         AutoBid runnerUp = queue.peek();
         double bidAmount;
@@ -123,15 +127,16 @@ public class AutoBidManager implements AuctionObserver {
         if (bidAmount <= currentPrice){
             winner.deactivate();
             autoBidDAO.deactivateByUuid(winner.getId());
-            return;
+            return null;
         }
         try{
-            AuctionManager.getInstance().placeBid(
+            return AuctionManager.getInstance().placeBid(
                     auction.getId(), winner.getBidderId(), bidAmount);
         } catch (Exception e){
             System.err.println("Auto-bid thất bại: " + e.getMessage());
             winner.deactivate();
             autoBidDAO.deactivateByUuid(winner.getId());
+            return null;
         }
     }
     public List<AutoBid> getAutoBidsForBidder (String bidderId){
@@ -173,4 +178,3 @@ public class AutoBidManager implements AuctionObserver {
         }
     }
 }
-

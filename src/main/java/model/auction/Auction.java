@@ -311,4 +311,8 @@ public class Auction implements AuctionSubject,Serializable {
             this.endTime = newEndTime;   // anti-snipe đã gia hạn
         }
     }
+    public BidTransaction getLatestBid() {
+        if (bidHistory.isEmpty()) return null;
+        return bidHistory.get(bidHistory.size() - 1);
+    }
 }
