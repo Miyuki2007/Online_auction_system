@@ -231,10 +231,21 @@ public class ClientHandler implements Runnable {
                 loggedInUsername,
                 req.getAmount());
 
+        // Broadcast bid thủ công của người vừa đặt
         server.broadcastToAuction(req.getAuctionId(),
                 new NotificationResponse(
                         NotificationResponse.NotificationType.BID_UPDATE,
                         "Có bid mới", bid));
+
+        // Nếu bid trên kích hoạt autobid của người khác → broadcast thêm bid auto
+        BidTransaction autoBidTx = model.manager.AutoBidManager.getInstance()
+                .triggerAutoBid(targetAuction, loggedInUsername);
+        if (autoBidTx != null) {
+            server.broadcastToAuction(req.getAuctionId(),
+                    new NotificationResponse(
+                            NotificationResponse.NotificationType.BID_UPDATE,
+                            "Auto-bid", autoBidTx));
+        }
 
         return new SuccessResponse("Đặt giá thành công!", bid);
     }
@@ -329,6 +340,17 @@ public class ClientHandler implements Runnable {
             return new ErrorResponse("Bạn không thể autobid phiên của chính mình.");
         }
         AutoBid autoBid = AutoBidManager.getInstance().register(auction,loggedInUsername,req.getMaxBid(),req.getIncrement());
+
+        // Nếu đăng ký autobid kích hoạt bid ngay (vì đang dẫn đầu) → broadcast
+        BidTransaction autoBidTx = AutoBidManager.getInstance()
+                .triggerAutoBid(auction, loggedInUsername);
+        if (autoBidTx != null) {
+            server.broadcastToAuction(req.getAuctionId(),
+                    new NotificationResponse(
+                            NotificationResponse.NotificationType.BID_UPDATE,
+                            "Auto-bid", autoBidTx));
+        }
+
         return new SuccessResponse(
                 String.format("Đã đăng kí auto-bid: max %.2f, bước nhảy %.2f", req.getMaxBid(),req.getIncrement()), autoBid);
     }
