@@ -172,6 +172,7 @@ public class AuctionDetailController {
 
         // Khi user nhập giá, validate và hiển thị hint ngay
         txtBidAmount.textProperty().addListener((obs, oldV, newV) -> validateBidInput(newV));
+        registerAsWatcher();
     }
 
     // ============================================
@@ -650,8 +651,30 @@ public class AuctionDetailController {
             });
         });
     }
-
-
+    private void registerAsWatcher() {
+        new Thread(() -> {
+            try {
+                AuctionClient client = Session.getInstance().getClient();
+                if (!client.isConnected()) client.connect();
+                Response response = client.sendRequest(
+                        new GetAuctionDetailRequest(auction.getId())
+                );
+                if (response != null && response.isOk()) {
+                    SuccessResponse success = (SuccessResponse) response;
+                    Auction fresh = success.getDataAs(Auction.class);
+                    if (fresh != null) {
+                        Platform.runLater(() -> {
+                            auction = fresh;
+                            Session.getInstance().setSelectedAuction(fresh);
+                            renderAuction(); // cập nhật lại với data mới nhất
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi đăng ký watcher: " + e.getMessage());
+            }
+        }, "RegisterWatcher-Thread").start();
+    }
     // ============================================
     //   SIDEBAR HANDLERS
     // ============================================
