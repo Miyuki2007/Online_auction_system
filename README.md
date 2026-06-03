@@ -520,4 +520,4 @@ mvn test
 
 ---
 ## 15. Link báo cáo và video demo
-- Link báo cáo: 
+- Link: https://drive.google.com/drive/folders/1_CV6EWZx4NLpKbw-8AL-Zf00A0Rwtn04?usp=sharing
