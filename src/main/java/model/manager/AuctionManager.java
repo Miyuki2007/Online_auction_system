@@ -177,46 +177,35 @@ public class AuctionManager {
         // 1. Đặt giá trong RAM trước (sẽ throw exception nếu invalid)
         BidTransaction record = auction.placeBid(bidderId, amount);
 
-        // 2. Nếu OK, lưu xuống DB
+        // 2. Nếu OK, lưu xuống DB đồng bộ — lịch sử bid sẵn sàng ngay
         if (record != null) {
-            final LocalDateTime endTimeSnapshot = auction.getEndTime();
-            CompletableFuture.runAsync(() -> {
-                try {
-                    dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
-                    dao.UserDAO userDAO = new dao.UserDAO();
-                    dao.BidDAO bidDAO = new dao.BidDAO();
+            try {
+                dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+                dao.UserDAO userDAO = new dao.UserDAO();
+                dao.BidDAO bidDAO = new dao.BidDAO();
 
-                    // Tra ID thật trong DB
-                    int dbAuctionId = auctionDAO.findAuctionIdByTitleAndSeller(
-                            auction.getItem().getName(),
-                            auction.getSellerId()
-                    );
-                    int dbBidderId = userDAO.findUserIdByUsername(bidderId);
+                int dbAuctionId = auctionDAO.findAuctionIdByTitleAndSeller(
+                        auction.getItem().getName(), auction.getSellerId());
+                int dbBidderId = userDAO.findUserIdByUsername(bidderId);
 
-                    if (dbAuctionId > 0 && dbBidderId > 0) {
-                        // Insert bid history
-                        boolean bidSaved = bidDAO.placeBid(dbAuctionId, dbBidderId, amount);
-                        // Update current_price + winner_id của auction
-                        boolean priceUpdated = auctionDAO.updateCurrentPrice(dbAuctionId, amount, dbBidderId);
-                        //Update end_time
-                        boolean endTimeUpdated = auctionDAO.updateEndTime(dbAuctionId, auction.getEndTime());
-                        if (bidSaved && priceUpdated && endTimeUpdated) {
-                            System.out.println("✅ Đã lưu bid vào DB: auction=" + dbAuctionId +
-                                    ", bidder=" + dbBidderId + ", amount=" + amount +
-                                    ", endTime=" + auction.getEndTime());
-                        } else {
-                            System.err.println("⚠️ Bid lưu DB không đầy đủ: bidSaved=" + bidSaved +
-                                    ", priceUpdated=" + priceUpdated + ", endTimeUpdated=" + endTimeUpdated);
-                        }
+                if (dbAuctionId > 0 && dbBidderId > 0) {
+                    boolean bidSaved = bidDAO.placeBid(dbAuctionId, dbBidderId, amount);
+                    boolean priceUpdated = auctionDAO.updateCurrentPrice(dbAuctionId, amount, dbBidderId);
+                    boolean endTimeUpdated = auctionDAO.updateEndTime(dbAuctionId, auction.getEndTime());
+
+                    if (bidSaved && priceUpdated && endTimeUpdated) {
+                        System.out.println("✅ Đã lưu bid vào DB: auction=" + dbAuctionId +
+                                ", bidder=" + dbBidderId + ", amount=" + amount);
                     } else {
-                        System.err.println("⚠️ Không tìm thấy auction hoặc bidder trong DB: " +
-                                "dbAuctionId=" + dbAuctionId + ", dbBidderId=" + dbBidderId);
+                        System.err.println("⚠️ Bid lưu DB không đầy đủ.");
                     }
-                } catch (Exception e) {
-                    System.err.println("❌ Lỗi khi lưu bid vào DB:");
-                    e.printStackTrace();
+                } else {
+                    System.err.println("⚠️ Không tìm thấy auction/bidder trong DB.");
                 }
-            });
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi lưu bid vào DB: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
         return record;
     }

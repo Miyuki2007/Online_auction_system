@@ -31,9 +31,5 @@ public class ServerObserver implements AuctionObserver{
 
     @Override
     public void onAuctionTimeExtended(Auction auction, long extensionSeconds){
-        server.broadcastToAuction(
-                auction.getId(),
-                new NotificationResponse(NotificationType.TIME_EXTENDED, "Thời gian được kéo dài", extensionSeconds)
-        );
     }
 }

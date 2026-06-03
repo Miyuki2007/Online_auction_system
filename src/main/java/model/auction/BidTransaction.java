@@ -11,6 +11,7 @@ public class BidTransaction implements Comparable<BidTransaction>, Serializable 
     private final String bidderId;
     private final double amount;    // Dùng double để khớp với kiểu dữ liệu trong class Auction
     private final LocalDateTime timestamp;
+    private LocalDateTime newEndTime;
 
     public BidTransaction(String auctionId, String bidderId, double amount) {
         this.id = UUID.randomUUID().toString();
@@ -19,12 +20,13 @@ public class BidTransaction implements Comparable<BidTransaction>, Serializable 
         this.amount = amount;
         this.timestamp = LocalDateTime.now();
     }
-    public BidTransaction(String auctionId, String bidderId, double amount,LocalDateTime timestamp) {
+    public BidTransaction(String auctionId, String bidderId, double amount, LocalDateTime timestamp) {
         this.id = UUID.randomUUID().toString();
         this.auctionId = auctionId;
         this.bidderId = bidderId;
         this.amount = amount;
         this.timestamp = timestamp;
+        this.newEndTime = null; // ← THÊM
     }
 
     // Các hàm Getter
@@ -33,7 +35,10 @@ public class BidTransaction implements Comparable<BidTransaction>, Serializable 
     public String getBidderId() { return bidderId; }
     public double getAmount() { return amount; }
     public LocalDateTime getTimestamp() { return timestamp; }
-
+    public LocalDateTime getNewEndTime() { return newEndTime; }       // ← THÊM
+    public void setNewEndTime(LocalDateTime newEndTime) {             // ← THÊM
+        this.newEndTime = newEndTime;
+    }
     @Override
     public int compareTo(BidTransaction other) {
         // So sánh giá giảm dần. Nếu giá bằng nhau, ai đặt trước xếp trên

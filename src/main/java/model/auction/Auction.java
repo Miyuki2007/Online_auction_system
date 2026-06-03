@@ -135,6 +135,7 @@ public class Auction implements AuctionSubject,Serializable {
                     if (secsRemain > 0 && secsRemain <= antiSnipeThresholdSec){
                         endTime = endTime.plusSeconds(antiSnipeExtensionSec);
                         extension = antiSnipeExtensionSec;
+                        record.setNewEndTime(endTime);
                     }
                 }
             }
@@ -307,8 +308,9 @@ public class Auction implements AuctionSubject,Serializable {
         this.currentHighestBid = bid.getAmount();
         this.currentWinnerId   = bid.getBidderId();
         this.bidHistory.add(bid);
-        if (newEndTime != null) {
-            this.endTime = newEndTime;   // anti-snipe đã gia hạn
+        LocalDateTime effectiveEndTime = (newEndTime != null) ? newEndTime : bid.getNewEndTime();
+        if (effectiveEndTime != null) {
+            this.endTime = effectiveEndTime;
         }
     }
     public BidTransaction getLatestBid() {

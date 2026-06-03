@@ -418,8 +418,7 @@ public class AuctionDetailController {
                         SuccessResponse success = (SuccessResponse) response;
                         BidTransaction bid = success.getDataAs(BidTransaction.class);
                         showMessage("✅ Đặt giá thành công: " + formatMoney(finalAmount), false);
-                        refreshAuction();
-                        loadMyBidHistory();
+                        refreshAuction(this::doLoadMyBidHistory);
                     } else {
                         showMessage("Đặt giá thất bại: " + response.getMessage(), true);
                         updateBidButton();
@@ -556,8 +555,7 @@ public class AuctionDetailController {
                         showMessage(String.format(
                                 "✅ Đã đăng ký auto-bid! Max: %s, Bước: %s",
                                 formatMoney(maxBid), formatMoney(increment)), false);
-                        refreshAuction();
-                        loadMyBidHistory();
+                        refreshAuction(this::doLoadMyBidHistory);
                     } else {
                         showMessage("Đăng ký thất bại: " + response.getMessage(), true);
                     }
@@ -576,6 +574,10 @@ public class AuctionDetailController {
      * Refresh auction từ server sau khi bid thành công.
      */
     private void refreshAuction() {
+        refreshAuction(null);
+    }
+
+    private void refreshAuction(Runnable afterRefresh) {
         new Thread(() -> {
             try {
                 AuctionClient client = Session.getInstance().getClient();
@@ -592,6 +594,10 @@ public class AuctionDetailController {
                             renderAuction();
                         });
                     }
+                }
+                // Chạy callback TUẦN TỰ trên cùng thread, sau khi refresh xong
+                if (afterRefresh != null) {
+                    afterRefresh.run();
                 }
             } catch (Exception ignored) {
             }
@@ -615,25 +621,32 @@ public class AuctionDetailController {
                     case BID_UPDATE -> {
                         BidTransaction bid = n.getDataAs(BidTransaction.class);
                         if (bid != null) {
-                            // Cập nhật state auction trong RAM từ data notification
-                            auction.applyBid(bid,null);
+                            auction.applyBid(bid, null); // applyBid tự đọc bid.getNewEndTime() nếu có
                             renderAuction();
+                            // Thông báo bổ sung khi anti-snipe gia hạn
+                            if (bid.getNewEndTime() != null) {
+                                showMessage("🔔 Bid mới: " + formatMoney(bid.getAmount())
+                                        + " | ⏱ Anti-snipe: giờ kết thúc mới "
+                                        + bid.getNewEndTime().format(DATE_FORMAT), false);
+                            } else {
+                                showMessage("🔔 Bid mới: " + formatMoney(bid.getAmount()), false);
+                            }
                         }
-                        showMessage("🔔 Bid mới: " + (bid != null ? formatMoney(bid.getAmount()) : ""), false);
                     }
-
+                    case TIME_EXTENDED -> {}
+/*
                     case TIME_EXTENDED -> {
                         // notification data là Auction đã được gia hạn
                         Auction updated = n.getDataAs(Auction.class);
                         if (updated != null) {
-                            auction.applyBid(
-                                    updated.getBidHistory().get(updated.getBidHistory().size() - 1),
-                                    updated.getEndTime()
-                            );
+                            auction = updated;
+                            Session.getInstance().setSelectedAuction(updated);
                             renderAuction();
                         }
                         showMessage("⏱ Phiên được gia hạn (anti-snipe).", false);
                     }
+
+ */
 
                     case STATE_CHANGED -> {
                         AuctionState newState = n.getDataAs(AuctionState.class);
@@ -761,53 +774,56 @@ public class AuctionDetailController {
         ));
         tblBidHistory.setPlaceholder(new Label("Bạn chưa đặt giá trong phiên này."));
     }
-    private void loadMyBidHistory(){
+    private void loadMyBidHistory() {
         if (auction == null || tblBidHistory == null) return;
-        User user = Session.getInstance().getLoggedInUser();
-        if (user == null) return;
-        new Thread(() -> {
-            try{
-                AuctionClient client = Session.getInstance().getClient();
-                if (!client.isConnected()) client.connect();
-                GetMyBidHistoryRequest req = new GetMyBidHistoryRequest(auction.getId());
-                Response response = client.sendRequest(req);
-                Platform.runLater(() -> {
-                    if (response == null || !response.isOk()) return;
-                    SuccessResponse success = (SuccessResponse) response;
-                    MyBidHistoryResponse histData = success.getDataAs(MyBidHistoryResponse.class);
-                    if (histData == null) return;
-                    //Cập nhật bảng manual bids
-                    List<BidTransaction> bids = histData.getManualBids();
-                    tblBidHistory.getItems().setAll(bids == null ? java.util.Collections.emptyList() : bids);
-                    //Cập nhật trạng thái auto-bids
-                    if (lblAutoBidStatus != null){
-                        AutoBid ab = histData.getActivAutoBid();
-                        if (ab != null && ab.isActive()){
-                            lblAutoBidStatus.setText(String.format("🤖 Auto-bid đang hoạt động  |  Tối đa: %s  |  Bước: %s",
-                                    formatMoney(ab.getMaxBid()), formatMoney(ab.getIncrement())));
-                            lblAutoBidStatus.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
-                            // Hiện nút hủy, disable nút đăng ký
-                            if (btnCancelAutoBid != null) {
-                                btnCancelAutoBid.setVisible(true);
-                                btnCancelAutoBid.setManaged(true);
-                                btnCancelAutoBid.setUserData(ab.getId()); // lưu autoBidId
-                            }
-                            if (btnAutoBid != null) btnAutoBid.setDisable(true);
+        if (Session.getInstance().getLoggedInUser() == null) return;
+        new Thread(this::doLoadMyBidHistory, "LoadBidHistory-Worker").start();
+    }
+
+    private void doLoadMyBidHistory() {
+        if (auction == null || tblBidHistory == null) return;
+        if (Session.getInstance().getLoggedInUser() == null) return;
+        try {
+            AuctionClient client = Session.getInstance().getClient();
+            if (!client.isConnected()) client.connect();
+            GetMyBidHistoryRequest req = new GetMyBidHistoryRequest(auction.getId());
+            Response response = client.sendRequest(req);
+            Platform.runLater(() -> {
+                if (response == null || !response.isOk()) return;
+                SuccessResponse success = (SuccessResponse) response;
+                MyBidHistoryResponse histData = success.getDataAs(MyBidHistoryResponse.class);
+                if (histData == null) return;
+                //Cập nhật bảng manual bids
+                List<BidTransaction> bids = histData.getManualBids();
+                tblBidHistory.getItems().setAll(bids == null ? java.util.Collections.emptyList() : bids);
+                //Cập nhật trạng thái auto-bids
+                if (lblAutoBidStatus != null){
+                    AutoBid ab = histData.getActivAutoBid();
+                    if (ab != null && ab.isActive()){
+                        lblAutoBidStatus.setText(String.format("🤖 Auto-bid đang hoạt động  |  Tối đa: %s  |  Bước: %s",
+                                formatMoney(ab.getMaxBid()), formatMoney(ab.getIncrement())));
+                        lblAutoBidStatus.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
+                        // Hiện nút hủy, disable nút đăng ký
+                        if (btnCancelAutoBid != null) {
+                            btnCancelAutoBid.setVisible(true);
+                            btnCancelAutoBid.setManaged(true);
+                            btnCancelAutoBid.setUserData(ab.getId()); // lưu autoBidId
                         }
-                        else{
-                            lblAutoBidStatus.setText("Chưa đăng ký auto-bid trong phiên này.");
-                            lblAutoBidStatus.setStyle("-fx-text-fill: #888;");
-                            // Ẩn nút hủy, bật lại nút đăng ký
-                            if (btnCancelAutoBid != null) {
-                                btnCancelAutoBid.setVisible(false);
-                                btnCancelAutoBid.setManaged(false);
-                            }
-                            if (btnAutoBid != null) btnAutoBid.setDisable(false);
-                        }
+                        if (btnAutoBid != null) btnAutoBid.setDisable(true);
                     }
-                });
-            } catch(Exception e) { e.printStackTrace(); }
-        }, "LoadBidHistory-Worker").start();
+                    else{
+                        lblAutoBidStatus.setText("Chưa đăng ký auto-bid trong phiên này.");
+                        lblAutoBidStatus.setStyle("-fx-text-fill: #888;");
+                        // Ẩn nút hủy, bật lại nút đăng ký
+                        if (btnCancelAutoBid != null) {
+                            btnCancelAutoBid.setVisible(false);
+                            btnCancelAutoBid.setManaged(false);
+                        }
+                        if (btnAutoBid != null) btnAutoBid.setDisable(false);
+                    }
+                }
+            });
+        } catch (Exception e) { e.printStackTrace(); }
     }
     @FXML
     void handleCancelAutoBid(){
