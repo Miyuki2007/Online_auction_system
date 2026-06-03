@@ -150,7 +150,7 @@ public class AuctionDetailController {
         if (loggedIn != null) {
             lblUser.setText(loggedIn.getFullName() != null
                     ? loggedIn.getFullName() : loggedIn.getUsername());
-            lblBalance.setText("Số dư: " + formatMoney(loggedIn.getBalance()));
+            lblBalance.setText(formatWallet(loggedIn));
         }
 
         // Lấy auction từ Session
@@ -190,7 +190,7 @@ public class AuctionDetailController {
                     User fresh = ((SuccessResponse) response).getDataAs(User.class);
                     Platform.runLater(() -> {
                         Session.getInstance().setLoggedInUser(fresh);
-                        lblBalance.setText("Số dư: " + formatMoney(fresh.getBalance()));
+                        lblBalance.setText(formatWallet(fresh));
                     });
                 }
             } catch (Exception ignored) {
@@ -750,7 +750,7 @@ public class AuctionDetailController {
                     if (response != null && response.isOk()) {
                         User fresh = ((SuccessResponse) response).getDataAs(User.class);
                         Session.getInstance().setLoggedInUser(fresh);
-                        lblBalance.setText("Số dư: " + formatMoney(fresh.getBalance()));
+                        lblBalance.setText(formatWallet(fresh));
                         showMessage("Nạp tiền thành công.", false);
                     } else {
                         showMessage(response == null ? "Server không phản hồi" : response.getMessage(), true);
@@ -940,6 +940,12 @@ public class AuctionDetailController {
     // ============================================
     private String formatMoney(double amount) {
         return MONEY_FORMAT.format(amount) + " ₫";
+    }
+
+    private String formatWallet(User user) {
+        return "Số dư: " + formatMoney(user.getBalance())
+                + " | Khả dụng: " + formatMoney(user.getAvailableBalance())
+                + " | Giữ: " + formatMoney(user.getLockedBalance());
     }
 
     private String formatRemainTime(Auction a) {

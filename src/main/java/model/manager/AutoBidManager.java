@@ -38,7 +38,7 @@ public class AutoBidManager implements AuctionObserver {
             throw new IllegalArgumentException("Người bán không thể auto-bid phiên của mình");
         }
         model.user.User bidder = new UserDAO().findByUsername(bidderId);
-        if (bidder == null || "ADMIN".equalsIgnoreCase(bidder.getRole()) || bidder.getBalance() < maxBid) {
+        if (bidder == null || "ADMIN".equalsIgnoreCase(bidder.getRole()) || bidder.getAvailableBalance() < maxBid) {
             throw new IllegalArgumentException("So du khong du de dang ky auto-bid toi da.");
         }
         List<AutoBid> existing = autoBidsByAuction.get(auction.getId());

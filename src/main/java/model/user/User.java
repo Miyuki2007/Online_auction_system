@@ -27,7 +27,7 @@ public abstract class User extends Entity {
     public void setBalance(double balance) { this.balance = balance; }
     public double getLockedBalance() { return lockedBalance; }
     public void setLockedBalance(double lockedBalance) { this.lockedBalance = lockedBalance; }
-    public double getAvailableBalance() { return balance; }
+    public double getAvailableBalance() { return Math.max(0.0, balance - lockedBalance); }
     public abstract String getRole();
     public boolean authenticate(String password){
         if (this.password == null || password == null) return false;

@@ -36,7 +36,7 @@ public class WalletDAO {
     public boolean withdraw(String username, double amount) {
         if (!validAmount(amount)) throw new IllegalArgumentException("So tien khong hop le.");
         String updateSql = "UPDATE Users SET balance = balance - ? " +
-                "WHERE username = ? AND role <> 'ADMIN' AND balance >= ?";
+                "WHERE username = ? AND role <> 'ADMIN' AND (balance - locked_balance) >= ?";
         try (Connection conn = DatabaseConnection.getConnection()) {
             requireConnection(conn);
             conn.setAutoCommit(false);
@@ -80,13 +80,12 @@ public class WalletDAO {
                             "Hoan tien do bi vuot gia");
                 }
 
-                String holdSql = "UPDATE Users SET balance = balance - ?, locked_balance = locked_balance + ? " +
-                        "WHERE user_id = ? AND role <> 'ADMIN' AND balance >= ?";
+                String holdSql = "UPDATE Users SET locked_balance = locked_balance + ? " +
+                        "WHERE user_id = ? AND role <> 'ADMIN' AND (balance - locked_balance) >= ?";
                 try (PreparedStatement ps = conn.prepareStatement(holdSql)) {
                     ps.setDouble(1, amount);
-                    ps.setDouble(2, amount);
-                    ps.setInt(3, bidderId);
-                    ps.setDouble(4, amount);
+                    ps.setInt(2, bidderId);
+                    ps.setDouble(3, amount);
                     if (ps.executeUpdate() == 0) {
                         throw new SQLException("So du khong du de dat gia.");
                     }
@@ -134,11 +133,13 @@ public class WalletDAO {
                     return false;
                 }
 
-                String unlockWinnerSql = "UPDATE Users SET locked_balance = GREATEST(locked_balance - ?, 0) " +
+                String unlockWinnerSql = "UPDATE Users SET balance = balance - ?, " +
+                        "locked_balance = GREATEST(locked_balance - ?, 0) " +
                         "WHERE user_id = ?";
                 try (PreparedStatement ps = conn.prepareStatement(unlockWinnerSql)) {
                     ps.setDouble(1, info.amount);
-                    ps.setInt(2, info.winnerId);
+                    ps.setDouble(2, info.amount);
+                    ps.setInt(3, info.winnerId);
                     if (ps.executeUpdate() == 0) {
                         throw new SQLException("So tien dang giu cua winner khong du.");
                     }
@@ -228,12 +229,10 @@ public class WalletDAO {
     }
 
     private void releaseHold(Connection conn, int userId, double amount) throws SQLException {
-        String sql = "UPDATE Users SET balance = balance + LEAST(locked_balance, ?), " +
-                "locked_balance = GREATEST(locked_balance - ?, 0) WHERE user_id = ?";
+        String sql = "UPDATE Users SET locked_balance = GREATEST(locked_balance - ?, 0) WHERE user_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDouble(1, amount);
-            ps.setDouble(2, amount);
-            ps.setInt(3, userId);
+            ps.setInt(2, userId);
             if (ps.executeUpdate() == 0) {
                 throw new SQLException("Khong the hoan tien dang giu.");
             }
