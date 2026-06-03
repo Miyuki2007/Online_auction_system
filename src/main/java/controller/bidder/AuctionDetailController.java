@@ -25,6 +25,7 @@ import model.user.User;
 import protocol.Response;
 import protocol.requests.GetAuctionDetailRequest;
 import protocol.requests.GetMyBidHistoryRequest;
+import protocol.requests.GetWalletRequest;
 import protocol.requests.PlaceBidRequest;
 import protocol.requests.RegisterAutoBidRequest;
 import protocol.requests.CancelAutoBidRequest;
@@ -175,6 +176,26 @@ public class AuctionDetailController {
         // Khi user nhập giá, validate và hiển thị hint ngay
         txtBidAmount.textProperty().addListener((obs, oldV, newV) -> validateBidInput(newV));
         registerAsWatcher();
+    }
+
+    private void refreshWallet() {
+        User user = Session.getInstance().getLoggedInUser();
+        if (user == null || lblBalance == null) return;
+        new Thread(() -> {
+            try {
+                AuctionClient client = Session.getInstance().getClient();
+                if (!client.isConnected()) client.connect();
+                Response response = client.sendRequest(new GetWalletRequest());
+                if (response != null && response.isOk()) {
+                    User fresh = ((SuccessResponse) response).getDataAs(User.class);
+                    Platform.runLater(() -> {
+                        Session.getInstance().setLoggedInUser(fresh);
+                        lblBalance.setText("Số dư: " + formatMoney(fresh.getBalance()));
+                    });
+                }
+            } catch (Exception ignored) {
+            }
+        }, "RefreshWallet-Worker").start();
     }
 
     // ============================================
@@ -420,6 +441,7 @@ public class AuctionDetailController {
                         SuccessResponse success = (SuccessResponse) response;
                         BidTransaction bid = success.getDataAs(BidTransaction.class);
                         showMessage("✅ Đặt giá thành công: " + formatMoney(finalAmount), false);
+                        refreshWallet();
                         refreshAuction(this::doLoadMyBidHistory);
                     } else {
                         showMessage("Đặt giá thất bại: " + response.getMessage(), true);
@@ -557,6 +579,7 @@ public class AuctionDetailController {
                         showMessage(String.format(
                                 "✅ Đã đăng ký auto-bid! Max: %s, Bước: %s",
                                 formatMoney(maxBid), formatMoney(increment)), false);
+                        refreshWallet();
                         refreshAuction(this::doLoadMyBidHistory);
                     } else {
                         showMessage("Đăng ký thất bại: " + response.getMessage(), true);
