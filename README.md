@@ -254,6 +254,8 @@ Online_auction_system/
 | `DB_URL` | `jdbc:mysql://localhost:3306/auctiondb` | Địa chỉ MySQL |
 | `DB_USER` | `root` | Tên người dùng MySQL |
 | `DB_PASS` | *(bắt buộc đặt)* | Mật khẩu MySQL đã đặt ở Mục 6 |
+
+---
 **🪟 Windows:**
 Thêm vào Environment Variables:
 - Nhấn `Windows + S` → tìm **"Edit the system environment variables"**
