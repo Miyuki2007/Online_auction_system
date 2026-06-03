@@ -157,6 +157,48 @@ public class Auction implements AuctionSubject,Serializable {
         notifyNewBid(record);
         return record;
     }
+    public void validateBid(String bidderId, double amount) {
+        bidLock.lock();
+        try {
+            validateBidUnlocked(bidderId, amount);
+        } finally {
+            bidLock.unlock();
+        }
+    }
+
+    public BidTransaction recordAcceptedBid(String bidderId, double amount, LocalDateTime newEndTime) {
+        BidTransaction record;
+        bidLock.lock();
+        try {
+            record = new BidTransaction(id, bidderId, amount);
+            if (newEndTime != null) {
+                endTime = newEndTime;
+                record.setNewEndTime(newEndTime);
+            }
+            bidHistory.add(record);
+            currentHighestBid = amount;
+            currentWinnerId = bidderId;
+        } finally {
+            bidLock.unlock();
+        }
+        notifyNewBid(record);
+        return record;
+    }
+
+    private void validateBidUnlocked(String bidderId, double amount) {
+        if (state != AuctionState.RUNNING) {
+            throw new AuctionClosedException(id);
+        }
+        if (LocalDateTime.now().isAfter(endTime)) {
+            throw new AuctionClosedException(id);
+        }
+        if (bidderId.equals(sellerId)) {
+            throw new InvalidBidException("Người bán không thể đấu giá trong chính phiên đấu giá của mình.");
+        }
+        if (amount <= currentHighestBid) {
+            throw new InvalidBidException("Giá đấu giá %.2f phải cao hơn giá hiện tại %.2f", amount, currentHighestBid);
+        }
+    }
     //Chuyển trạng thái
     public void start(){
         transitionTo(AuctionState.RUNNING);

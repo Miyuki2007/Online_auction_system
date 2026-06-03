@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 public class AuctionServer {
-    private static final int PORT = 12345;
+    private static final int PORT = parsePort(getConfig("server.port", "SERVER_PORT", "12345"));
     private final List<ClientHandler> connectedClients = new CopyOnWriteArrayList<>();
     private final ExecutorService threadPool = Executors.newFixedThreadPool(200);
     private final ExecutorService broadcastPool = new ThreadPoolExecutor(
@@ -91,5 +91,29 @@ public class AuctionServer {
         AuctionServer server = new AuctionServer();
         Runtime.getRuntime().addShutdownHook(new Thread(server::shutdown));
         server.start();
+    }
+
+    private static String getConfig(String propertyName, String envName, String defaultValue) {
+        String propertyValue = System.getProperty(propertyName);
+        if (propertyValue != null && !propertyValue.isBlank()) {
+            return propertyValue.trim();
+        }
+        String envValue = System.getenv(envName);
+        if (envValue != null && !envValue.isBlank()) {
+            return envValue.trim();
+        }
+        return defaultValue;
+    }
+
+    private static int parsePort(String value) {
+        try {
+            int port = Integer.parseInt(value);
+            if (port < 1 || port > 65535) {
+                throw new IllegalArgumentException("Port ngoai khoang hop le: " + value);
+            }
+            return port;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("SERVER_PORT/server.port khong hop le: " + value, e);
+        }
     }
 }

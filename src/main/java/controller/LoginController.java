@@ -65,6 +65,10 @@ public class LoginController {
             // Type-safe: dùng class con LoginRequest
             LoginRequest req = new LoginRequest(username, password);
             Response res = client.sendRequest(req);
+            if (res == null) {
+                lblError.setText("Server không phản hồi. Hãy thử lại.");
+                return;
+            }
 
             if (res.isOk()) {
                 // Type-safe: ép kiểu data

@@ -209,7 +209,6 @@
                                 <TableColumn fx:id="colUsername" prefWidth="140" text="Username" />
                                 <TableColumn fx:id="colFullName" prefWidth="180" text="Họ tên" />
                                 <TableColumn fx:id="colEmail" prefWidth="200" text="Email" />
-                                <TableColumn fx:id="colRole" prefWidth="100" text="Vai trò" />
                                 <TableColumn fx:id="colStatus" prefWidth="130" text="Trạng thái" />
                                 <TableColumn fx:id="colCreatedAt" prefWidth="150" text="Ngày tạo" />
                             </columns>

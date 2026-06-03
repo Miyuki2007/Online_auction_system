@@ -354,6 +354,109 @@ Lặp lại **Bước 2** ở các Terminal mới. Server hỗ trợ tối đa 2
 
 ---
 
+### Chạy nhiều máy trong cùng mạng LAN
+
+Mô hình chạy nhiều máy:
+
+- **Máy A** chạy `AuctionServer` và kết nối MySQL.
+- **Máy B/C/...** chỉ chạy JavaFX client.
+- Tất cả client trỏ đến IP LAN của máy A qua biến `SERVER_HOST`.
+
+#### 1. Tìm IP LAN của máy chạy server
+
+Trên máy A, mở PowerShell hoặc CMD:
+
+```powershell
+ipconfig
+```
+
+Tìm dòng `IPv4 Address`, ví dụ:
+
+```text
+192.168.1.25
+```
+
+#### 2. Chạy server trên máy A
+
+PowerShell:
+
+```powershell
+$env:DB_PASS="mat_khau_mysql"
+$env:SERVER_PORT="12345"
+mvn exec:java -Dexec.mainClass="server.AuctionServer"
+```
+
+CMD:
+
+```cmd
+set DB_PASS=mat_khau_mysql
+set SERVER_PORT=12345
+mvn exec:java -Dexec.mainClass="server.AuctionServer"
+```
+
+Server dùng `ServerSocket` nên mặc định lắng nghe trên các địa chỉ IP của máy, không chỉ `localhost`.
+
+#### 3. Mở firewall cho port 12345 trên máy A
+
+Nếu máy khác không kết nối được, mở PowerShell bằng quyền Administrator và chạy:
+
+```powershell
+New-NetFirewallRule -DisplayName "Auction Server 12345" -Direction Inbound -Protocol TCP -LocalPort 12345 -Action Allow
+```
+
+#### 4. Chạy client trên máy B/C
+
+Thay `192.168.1.25` bằng IP LAN thật của máy A.
+
+PowerShell:
+
+```powershell
+$env:SERVER_HOST="192.168.1.25"
+$env:SERVER_PORT="12345"
+mvn javafx:run
+```
+
+CMD:
+
+```cmd
+set SERVER_HOST=192.168.1.25
+set SERVER_PORT=12345
+mvn javafx:run
+```
+
+macOS / Linux:
+
+```bash
+export SERVER_HOST=192.168.1.25
+export SERVER_PORT=12345
+mvn javafx:run
+```
+
+Client cũng có thể cấu hình bằng JVM system properties:
+
+```bash
+mvn javafx:run -Dserver.host=192.168.1.25 -Dserver.port=12345
+```
+
+#### 5. Kiểm tra kết nối
+
+Trên máy client, kiểm tra port server có mở không:
+
+```powershell
+Test-NetConnection 192.168.1.25 -Port 12345
+```
+
+Nếu `TcpTestSucceeded: True` thì client có thể kết nối server.
+
+Lưu ý:
+
+- Các máy phải cùng mạng LAN hoặc cùng Wi-Fi.
+- Server phải chạy trước client.
+- Client không cần cấu hình `DB_PASS`; chỉ server cần kết nối MySQL.
+- Nếu đổi port server, phải đặt cùng `SERVER_PORT` trên server và client.
+
+---
+
 ## 12. Tắt Server Khi Dùng Xong
 
 Trong cửa sổ Terminal đang chạy Server, nhấn:

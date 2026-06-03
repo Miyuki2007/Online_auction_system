@@ -70,6 +70,10 @@ public class CreateAuctionController {
     void initialize() {
         // 1. Hiển thị tên user
         User loggedIn = Session.getInstance().getLoggedInUser();
+        if (loggedIn != null && "ADMIN".equalsIgnoreCase(loggedIn.getRole())) {
+            SceneManager.getInstance().switchScene("admin/dashboard.fxml", "Quản trị hệ thống");
+            return;
+        }
         if (loggedIn != null) {
             lblUser.setText(loggedIn.getFullName() != null
                     ? loggedIn.getFullName()

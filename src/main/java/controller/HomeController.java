@@ -108,6 +108,10 @@ public class HomeController {
             SceneManager.getInstance().switchScene("login.fxml", "Đăng nhập");
             return;
         }
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            SceneManager.getInstance().switchScene("admin/dashboard.fxml", "Quản trị hệ thống");
+            return;
+        }
 
         // Sidebar / banner
         String displayName = user.getFullName() != null && !user.getFullName().isEmpty()

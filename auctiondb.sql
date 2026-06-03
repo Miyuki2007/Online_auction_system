@@ -12,6 +12,7 @@ CREATE TABLE Users (
     phone_number VARCHAR(15),
     address TEXT,
     balance DECIMAL(15, 2) DEFAULT 0.00,
+    locked_balance DECIMAL(15, 2) DEFAULT 0.00,
     is_active BOOLEAN DEFAULT  TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -72,6 +73,17 @@ CREATE TABLE Payments (
     FOREIGN KEY (buyer_id) REFERENCES Users(user_id)
 );
 -- Bảng Auto-bid
+CREATE TABLE WalletTransactions (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    auction_id INT NULL,
+    type ENUM('DEPOSIT','WITHDRAW','HOLD','RELEASE','PAY_SELLER') NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    note VARCHAR(255),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (auction_id) REFERENCES Auctions(auction_id)
+);
 CREATE TABLE AutoBids (
                           autobid_id  INT AUTO_INCREMENT PRIMARY KEY,
                           uuid        VARCHAR(36)   NOT NULL UNIQUE,

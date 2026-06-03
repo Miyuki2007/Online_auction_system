@@ -24,6 +24,7 @@ import model.user.User;
 import protocol.Response;
 import protocol.requests.CancelAuctionRequest;
 import protocol.requests.GetMyAuctionRequest;
+import protocol.requests.WithdrawRequest;
 import protocol.responses.SuccessResponse;
 
 import java.io.ByteArrayInputStream;
@@ -31,17 +32,20 @@ import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 public class MyAuctionsController {
 
     // ===== Sidebar =====
     @FXML private Label lblUser;
+    @FXML private Label lblBalance;
     @FXML private Button btnHome;
     @FXML private Button btnMyAuctions;
     @FXML private Button btnCreate;
     @FXML private Button btnAccount;
     @FXML private Button btnSupport;
     @FXML private Button btnLogout;
+    @FXML private Button btnWithdraw;
 
     // ===== Top bar =====
     @FXML private Label lblStats;
@@ -87,9 +91,16 @@ public class MyAuctionsController {
     void initialize() {
         // Hiển thị tên user
         User loggedIn = Session.getInstance().getLoggedInUser();
+        if (loggedIn != null && "ADMIN".equalsIgnoreCase(loggedIn.getRole())) {
+            SceneManager.getInstance().switchScene("admin/dashboard.fxml", "Quản trị hệ thống");
+            return;
+        }
         if (loggedIn != null) {
             lblUser.setText(loggedIn.getFullName() != null
                     ? loggedIn.getFullName() : loggedIn.getUsername());
+            if (lblBalance != null) {
+                lblBalance.setText("Số dư: " + formatMoney(loggedIn.getBalance()));
+            }
         }
 
         // Setup Status Filter
@@ -455,6 +466,45 @@ public class MyAuctionsController {
         stopTimer();
         SceneManager.getInstance().switchScene(
                 "seller/create-auction.fxml", "Đăng sản phẩm");
+    }
+
+    @FXML
+    void handleWithdraw() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Rút tiền");
+        dialog.setHeaderText("Nhập số tiền muốn rút");
+        dialog.setContentText("Số tiền:");
+        dialog.initOwner(getWindow());
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty()) return;
+
+        double amount;
+        try {
+            amount = Double.parseDouble(result.get().trim().replace(",", "").replace(" ", ""));
+        } catch (NumberFormatException e) {
+            showMessage("Số tiền không hợp lệ.", true);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                AuctionClient client = Session.getInstance().getClient();
+                if (!client.isConnected()) client.connect();
+                Response response = client.sendRequest(new WithdrawRequest(amount));
+                Platform.runLater(() -> {
+                    if (response != null && response.isOk()) {
+                        User fresh = ((SuccessResponse) response).getDataAs(User.class);
+                        Session.getInstance().setLoggedInUser(fresh);
+                        lblBalance.setText("Số dư: " + formatMoney(fresh.getBalance()));
+                        showMessage("Rút tiền thành công.", false);
+                    } else {
+                        showMessage(response == null ? "Server không phản hồi" : response.getMessage(), true);
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> showMessage("Lỗi: " + e.getMessage(), true));
+            }
+        }, "Withdraw-Worker").start();
     }
 
     @FXML

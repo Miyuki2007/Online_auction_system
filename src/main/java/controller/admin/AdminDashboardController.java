@@ -78,7 +78,6 @@ public class AdminDashboardController {
     @FXML private TableColumn<UserRow, String> colUsername;
     @FXML private TableColumn<UserRow, String> colFullName;
     @FXML private TableColumn<UserRow, String> colEmail;
-    @FXML private TableColumn<UserRow, String> colRole;
     @FXML private TableColumn<UserRow, String> colStatus;
     @FXML private TableColumn<UserRow, String> colCreatedAt;
     @FXML private Button btnToggleLock;
@@ -182,7 +181,6 @@ public class AdminDashboardController {
         colUsername.setCellValueFactory(c -> c.getValue().usernameProperty());
         colFullName.setCellValueFactory(c -> c.getValue().fullNameProperty());
         colEmail.setCellValueFactory(c -> c.getValue().emailProperty());
-        colRole.setCellValueFactory(c -> c.getValue().roleProperty());
         colStatus.setCellValueFactory(c -> c.getValue().statusProperty());
         colCreatedAt.setCellValueFactory(c -> c.getValue().createdAtProperty());
         tblUsers.setItems(usersData);

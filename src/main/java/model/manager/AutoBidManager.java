@@ -37,6 +37,10 @@ public class AutoBidManager implements AuctionObserver {
         if (auction.getSellerId().equals(bidderId)){
             throw new IllegalArgumentException("Người bán không thể auto-bid phiên của mình");
         }
+        model.user.User bidder = new UserDAO().findByUsername(bidderId);
+        if (bidder == null || "ADMIN".equalsIgnoreCase(bidder.getRole()) || bidder.getBalance() < maxBid) {
+            throw new IllegalArgumentException("So du khong du de dang ky auto-bid toi da.");
+        }
         List<AutoBid> existing = autoBidsByAuction.get(auction.getId());
         if (existing != null){
             synchronized (existing){
@@ -130,7 +134,7 @@ public class AutoBidManager implements AuctionObserver {
             return null;
         }
         try{
-            return AuctionManager.getInstance().placeBid(
+            return AuctionManager.getInstance().placeBidWithWallet(
                     auction.getId(), winner.getBidderId(), bidAmount);
         } catch (Exception e){
             System.err.println("Auto-bid thất bại: " + e.getMessage());

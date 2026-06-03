@@ -29,6 +29,10 @@
                 <Label fx:id="lblUser" style="-fx-text-fill: white;" text="Seller Name">
                     <font><Font name="System Bold" size="14.0" /></font>
                 </Label>
+                <Label fx:id="lblBalance" style="-fx-text-fill: #f9c74f;" text="Số dư: 0 ₫">
+                    <font><Font size="11.0" /></font>
+                </Label>
+                <Button fx:id="btnWithdraw" maxWidth="Infinity" onAction="#handleWithdraw" style="-fx-background-color: #e67e22; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 6 10; -fx-background-radius: 4;" text="Rút tiền" />
             </VBox>
 
             <!-- Menu items -->

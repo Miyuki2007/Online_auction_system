@@ -17,7 +17,10 @@ public abstract class Request implements Serializable {
         ADMIN_FORCE_CANCEL_AUCTION,
         ADMIN_GET_STATS,
         GET_MY_BID_HISTORY,
-        CANCEL_AUTO_BID
+        CANCEL_AUTO_BID,
+        DEPOSIT,
+        WITHDRAW,
+        GET_WALLET
     }
     public abstract Type getType();
 }

@@ -28,6 +28,7 @@ import protocol.requests.GetMyBidHistoryRequest;
 import protocol.requests.PlaceBidRequest;
 import protocol.requests.RegisterAutoBidRequest;
 import protocol.requests.CancelAutoBidRequest;
+import protocol.requests.DepositRequest;
 import protocol.responses.MyBidHistoryResponse;
 import protocol.responses.NotificationResponse;
 import protocol.responses.SuccessResponse;
@@ -39,6 +40,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Trang chi tiết phiên đấu giá (layout giống create-auction).
@@ -140,14 +142,14 @@ public class AuctionDetailController {
     void initialize() {
         // User info trên sidebar
         User loggedIn = Session.getInstance().getLoggedInUser();
+        if (loggedIn != null && "ADMIN".equalsIgnoreCase(loggedIn.getRole())) {
+            SceneManager.getInstance().switchScene("admin/dashboard.fxml", "Quản trị hệ thống");
+            return;
+        }
         if (loggedIn != null) {
             lblUser.setText(loggedIn.getFullName() != null
                     ? loggedIn.getFullName() : loggedIn.getUsername());
-            if (loggedIn instanceof Bidder bidder) {
-                lblBalance.setText("Số dư: " + formatMoney(bidder.getBalance()));
-            } else {
-                lblBalance.setText("");
-            }
+            lblBalance.setText("Số dư: " + formatMoney(loggedIn.getBalance()));
         }
 
         // Lấy auction từ Session
@@ -699,6 +701,45 @@ public class AuctionDetailController {
     }
 
     @FXML
+    void handleDeposit() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Nạp tiền");
+        dialog.setHeaderText("Nhập số tiền muốn nạp");
+        dialog.setContentText("Số tiền:");
+        dialog.initOwner(getWindow());
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty()) return;
+
+        double amount;
+        try {
+            amount = Double.parseDouble(result.get().trim().replace(",", "").replace(" ", ""));
+        } catch (NumberFormatException e) {
+            showMessage("Số tiền không hợp lệ.", true);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                AuctionClient client = Session.getInstance().getClient();
+                if (!client.isConnected()) client.connect();
+                Response response = client.sendRequest(new DepositRequest(amount));
+                Platform.runLater(() -> {
+                    if (response != null && response.isOk()) {
+                        User fresh = ((SuccessResponse) response).getDataAs(User.class);
+                        Session.getInstance().setLoggedInUser(fresh);
+                        lblBalance.setText("Số dư: " + formatMoney(fresh.getBalance()));
+                        showMessage("Nạp tiền thành công.", false);
+                    } else {
+                        showMessage(response == null ? "Server không phản hồi" : response.getMessage(), true);
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> showMessage("Lỗi: " + e.getMessage(), true));
+            }
+        }, "Deposit-Worker").start();
+    }
+
+    @FXML
     void handleHome() {
         stopTimer();
         SceneManager.getInstance().switchScene("home.fxml", "Trang chủ - Hệ thống đấu giá");
@@ -715,10 +756,8 @@ public class AuctionDetailController {
         StringBuilder content = new StringBuilder();
         content.append("👤 Tên đăng nhập: ").append(user.getUsername()).append("\n");
         content.append("📧 Email: ").append(user.getEmail()).append("\n");
-        if (user instanceof Bidder bidder) {
-            content.append("💰 Số dư: ").append(formatMoney(bidder.getBalance())).append("\n");
-            content.append("📜 Số lần đã bid: ").append(bidder.getBidHistory().size());
-        }
+        content.append("Số dư: ").append(formatMoney(user.getBalance())).append("\n");
+        content.append("Đang giữ: ").append(formatMoney(user.getLockedBalance()));
         info.setContentText(content.toString());
         info.initOwner(getWindow());
         info.showAndWait();

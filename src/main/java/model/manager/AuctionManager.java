@@ -2,6 +2,7 @@ package model.manager;
 
 import dao.AutoBidDAO;
 import dao.UserDAO;
+import dao.WalletDAO;
 import model.auction.Auction;
 import model.auction.AutoBid;
 import model.auction.BidTransaction;
@@ -88,7 +89,12 @@ public class AuctionManager {
                         auction.getSellerId()
                 );
                 if (dbAuctionId > 0) {
-                    auctionDAO.updateStatus(dbAuctionId, "FINISHED");
+                    boolean paid = new WalletDAO().settleAuction(dbAuctionId);
+                    if (paid) {
+                        auction.markPaid();
+                    } else {
+                        auctionDAO.updateStatus(dbAuctionId, "FINISHED");
+                    }
                     System.out.println("✅ Auction " + auction.getId() +
                             " đã kết thúc và lưu DB (auction_id=" + dbAuctionId + ").");
                 } else {
@@ -166,6 +172,47 @@ public class AuctionManager {
 
     public Auction findAuctionById(String id) {
         return activeAuctions.get(id);
+    }
+
+    public BidTransaction placeBidWithWallet(String auctionId, String bidderId, double amount) {
+        Auction auction = findAuctionById(auctionId);
+        if (auction == null) {
+            throw new IllegalArgumentException("Phiên đấu giá không tồn tại.");
+        }
+
+        synchronized (auction) {
+            auction.validateBid(bidderId, amount);
+
+            dao.AuctionDAO auctionDAO = new dao.AuctionDAO();
+            int dbAuctionId = auctionDAO.findAuctionIdByTitleAndSeller(
+                    auction.getItem().getName(), auction.getSellerId());
+            if (dbAuctionId <= 0) {
+                throw new IllegalArgumentException("Không tìm thấy phiên trong DB.");
+            }
+
+            String previousWinner = auction.getCurrentWinnerId();
+            double previousAmount = previousWinner == null ? 0.0 : auction.getCurrentHighestBid();
+            LocalDateTime oldEndTime = auction.getEndTime();
+            LocalDateTime newEndTime = calculateBidEndTime(auction);
+
+            new WalletDAO().holdForBid(dbAuctionId, bidderId, previousWinner,
+                    previousAmount, amount, newEndTime);
+
+            return auction.recordAcceptedBid(bidderId, amount,
+                    newEndTime.equals(oldEndTime) ? null : newEndTime);
+        }
+    }
+
+    private LocalDateTime calculateBidEndTime(Auction auction) {
+        LocalDateTime endTime = auction.getEndTime();
+        if (!auction.isAntiSnipeEnabled()) {
+            return endTime;
+        }
+        long secsRemain = java.time.Duration.between(LocalDateTime.now(), endTime).getSeconds();
+        if (secsRemain > 0 && secsRemain <= auction.getAntiSnipeThresholdSec()) {
+            return endTime.plusSeconds(auction.getAntiSnipeExtensionSec());
+        }
+        return endTime;
     }
 
     public BidTransaction placeBid(String auctionId, String bidderId, double amount) {

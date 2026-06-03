@@ -32,6 +32,7 @@
                 <Label fx:id="lblBalance" style="-fx-text-fill: #f9c74f;" text="Số dư: 0 ₫">
                     <font><Font size="11.0" /></font>
                 </Label>
+                <Button fx:id="btnDeposit" maxWidth="Infinity" onAction="#handleDeposit" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 6 10; -fx-background-radius: 4;" text="Nạp tiền" />
             </VBox>
 
             <!-- Menu items -->

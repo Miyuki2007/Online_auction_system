@@ -123,6 +123,15 @@ public class ClientHandler implements Runnable {
             if (request instanceof CancelAutoBidRequest req){
                 return handleCancelAutoBid(req);
             }
+            if (request instanceof DepositRequest req) {
+                return handleDeposit(req);
+            }
+            if (request instanceof WithdrawRequest req) {
+                return handleWithdraw(req);
+            }
+            if (request instanceof GetWalletRequest) {
+                return handleGetWallet();
+            }
             return new ErrorResponse("Yêu cầu không được hỗ trợ: "
                     + request.getType());
         } catch (Exception e) {
@@ -226,7 +235,7 @@ public class ClientHandler implements Runnable {
             return new ErrorResponse("Người bán không thể đặt giá trong chính phiên đấu giá của mình.");
         }
 
-        BidTransaction bid = manager.placeBid(
+        BidTransaction bid = manager.placeBidWithWallet(
                 req.getAuctionId(),
                 loggedInUsername,
                 req.getAmount());
@@ -311,7 +320,7 @@ public class ClientHandler implements Runnable {
                 auction.getSellerId()
         );
         if (dbAuctionId > 0) {
-            boolean ok = auctionDAO.updateStatus(dbAuctionId, "CANCELED");
+            boolean ok = new dao.WalletDAO().releaseAuctionHoldAndCancel(dbAuctionId);
             if (ok) {
                 System.out.println("✅ Đã hủy auction " + dbAuctionId + " trong DB.");
             }
@@ -411,7 +420,7 @@ public class ClientHandler implements Runnable {
                 auction.getItem().getName(),auction.getSellerId()
         );
         if (dbAuctionId>0){
-            auctionDAO.updateStatus(dbAuctionId,"CANCELED");
+            new dao.WalletDAO().releaseAuctionHoldAndCancel(dbAuctionId);
         }
         server.broadcastToAuction(req.getAuctionId(),
                 new NotificationResponse(
@@ -481,6 +490,26 @@ public class ClientHandler implements Runnable {
         MyBidHistoryResponse data = new MyBidHistoryResponse(myBids,activAutoBid);
         return new SuccessResponse("Lịch sử bid của bạn.", data);
     }
+    private Response handleDeposit(DepositRequest req) {
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
+        new dao.WalletDAO().deposit(loggedInUsername, req.getAmount());
+        model.user.User fresh = new dao.UserDAO().findByUsername(loggedInUsername);
+        return new SuccessResponse("Nạp tiền thành công.", fresh);
+    }
+
+    private Response handleWithdraw(WithdrawRequest req) {
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
+        new dao.WalletDAO().withdraw(loggedInUsername, req.getAmount());
+        model.user.User fresh = new dao.UserDAO().findByUsername(loggedInUsername);
+        return new SuccessResponse("Rút tiền thành công.", fresh);
+    }
+
+    private Response handleGetWallet() {
+        if (loggedInUsername == null) return new ErrorResponse("Chưa đăng nhập.");
+        model.user.User fresh = new dao.UserDAO().findByUsername(loggedInUsername);
+        return new SuccessResponse("Thông tin ví.", fresh);
+    }
+
     // ========== UTILITIES ==========
 
     public void sendResponse(Response response) {
