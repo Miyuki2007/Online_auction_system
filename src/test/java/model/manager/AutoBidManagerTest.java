@@ -39,6 +39,10 @@ class AutoBidManagerTest {
         auctionManager.registerUser(new model.user.Bidder("bidder-01", "pass", "b1@test.com", "Bidder One"));
         auctionManager.registerUser(new model.user.Bidder("bidder-02", "pass", "b2@test.com", "Bidder Two"));
         auctionManager.registerUser(new model.user.Bidder("bidder-03", "pass", "b3@test.com", "Bidder Three"));
+        dao.WalletDAO walletDAO = new dao.WalletDAO();
+        walletDAO.deposit("bidder-01", 100_000.0);
+        walletDAO.deposit("bidder-02", 100_000.0);
+        walletDAO.deposit("bidder-03", 100_000.0);
         auction = auctionManager.createAuction(
                 SELLER_ID, item, 1000.0,
                 LocalDateTime.now(),

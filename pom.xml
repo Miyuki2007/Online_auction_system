@@ -72,6 +72,9 @@
                 <configuration>
                     <!-- Bỏ qua các test cần kết nối DB hoặc socket thật khi chạy trên CI -->
                     <!-- Đặt tên class test có hậu tố *IT.java nếu là integration test -->
+                    <environmentVariables>
+                        <DB_URL>jdbc:mysql://localhost:3306/auctiondb_test</DB_URL>
+                    </environmentVariables>
                     <excludes>
                         <exclude>**/*IT.java</exclude>
                         <exclude>**/MultiClientTest.java</exclude>

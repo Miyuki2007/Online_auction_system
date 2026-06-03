@@ -30,6 +30,7 @@ public class TestDatabaseCleaner {
 
         try (conn; Statement stmt = conn.createStatement()) {
             stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
+            stmt.execute("TRUNCATE TABLE WalletTransactions");
             stmt.execute("TRUNCATE TABLE AutoBids");
             stmt.execute("TRUNCATE TABLE Bids");
             stmt.execute("TRUNCATE TABLE Payments");
